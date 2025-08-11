@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
 import './MemberSignUp.css';
+import axiosInstance from '../api/axios';
+import { useNavigate } from 'react-router-dom';
 
 
 const initialState = {
@@ -20,6 +22,7 @@ const initialState = {
 };
 
 const MemberSignUp = () => {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     ...initialState,
     member_Email: '',
@@ -103,21 +106,23 @@ const MemberSignUp = () => {
     }
     setLoading(true);
     try {
-      const res = await fetch('/auth/send-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ email: form.member_Email }).toString(),
-        credentials: 'include',
-      });
-      if (res.ok) {
+      const response = await axiosInstance.post('/auth/send-code', 
+        new URLSearchParams({ email: form.member_Email }).toString(),
+        {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        }
+      );
+      
+      if (response.status === 200) {
         setForm((f) => ({ ...f, verificationCodeSent: true }));
         setToastMessage('이메일로 인증코드가 전송되었습니다.');
         setTimer(180);
         setIsCodeExpired(false);
         setForm((f) => ({ ...f, verificationCodeInput: '' }));
-      } else {
-        setToastMessage('인증번호 전송 실패');
       }
+    } catch (error) {
+      setToastMessage('인증번호 전송 실패');
+      console.error('인증번호 전송 오류:', error);
     } finally {
       setLoading(false);
     }
@@ -131,25 +136,27 @@ const MemberSignUp = () => {
     }
     setCodeLoading(true);
     try {
-      const res = await fetch('/auth/verify-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
+      const response = await axiosInstance.post('/auth/verify-code',
+        new URLSearchParams({
           email: form.member_Email,
           code: form.verificationCodeInput,
         }).toString(),
-        credentials: 'include',
-      });
-      if (res.ok) {
+        {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        }
+      );
+      
+      if (response.status === 200) {
         setForm((f) => ({ ...f, emailVerified: true }));
         setCodeBtnCompleted(true);
         setErrors((e) => ({ ...e, verificationCode: undefined }));
         setTimer(0);
         setToastMessage('인증 성공!');
-      } else {
-        setErrors((e) => ({ ...e, verificationCode: '인증코드가 올바르지 않습니다.' }));
-        setToastMessage('인증코드가 올바르지 않습니다.');
       }
+    } catch (error) {
+      setErrors((e) => ({ ...e, verificationCode: '인증코드가 올바르지 않습니다.' }));
+      setToastMessage('인증코드가 올바르지 않습니다.');
+      console.error('인증코드 확인 오류:', error);
     } finally {
       setCodeLoading(false);
     }
@@ -274,11 +281,10 @@ const MemberSignUp = () => {
 
       // JSON 데이터를 문자열로 변환하여 추가
       const memberData = {
-        member_NickName: form.nickname,
-        member_Email: form.member_Email,
-        member_Pw: form.member_Pw,
-        member_Phone: form.phone,
-        member_Mileage: 0 // 기본 마일리지
+        nickname: form.nickname,
+        email: form.member_Email,
+        password: form.member_Pw,
+        phone: form.phone
       };
 
       formData.append('data', new Blob([JSON.stringify(memberData)], {
@@ -290,23 +296,25 @@ const MemberSignUp = () => {
         formData.append('member_ProfileImgFile', form.profileImgFile);
       }
 
-      const response = await fetch('/api/members/signup', {
-        method: 'POST',
-        body: formData,
-        // Content-Type은 브라우저가 자동으로 설정 (multipart/form-data)
-      });
+      const response = await axiosInstance.post('/members/signup', formData);
 
-      if (response.ok) {
-        const responseData = await response.json();
+      if (response.status === 200) {
+        const responseData = response.data;
         setNewMemberId(responseData.memberId);
         setToastMessage('회원가입이 완료되었습니다!');
-      } else {
-        const errorText = await response.text();
-        setToastMessage(`회원가입 실패: ${errorText}`);
+        
+        // 1초 후 로그인 페이지로 이동
+        setTimeout(() => {
+          navigate('/login');
+        }, 1000);
       }
     } catch (error) {
       console.error('회원가입 오류:', error);
-      setToastMessage('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
+      if (error.response?.data) {
+        setToastMessage(`회원가입 실패: ${error.response.data}`);
+      } else {
+        setToastMessage('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
+      }
     }
   };
 
