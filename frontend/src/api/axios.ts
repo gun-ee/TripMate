@@ -1,4 +1,5 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import axios from 'axios';
+import type { AxiosResponse, AxiosError } from 'axios';
 
 /**
  * API 응답 데이터 타입 정의
@@ -34,7 +35,7 @@ interface MemberData {
  * Axios 인스턴스 생성
  * React devServer proxy 설정을 통해 Spring Boot 백엔드와 연결
  */
-const axiosInstance: AxiosInstance = axios.create({
+const axiosInstance = axios.create({
   baseURL: '/api', // React devServer proxy 설정을 사용하면 Spring Boot로 연결됨
   withCredentials: true, // 쿠키 인증 필요 시 사용
 });
@@ -43,9 +44,9 @@ const axiosInstance: AxiosInstance = axios.create({
  * 요청 인터셉터: 토큰 자동 추가 및 FormData 처리
  * 모든 HTTP 요청 전에 실행되어 인증 토큰을 자동으로 추가
  */
-axiosInstance.interceptors.request.use((config: AxiosRequestConfig) => {
-  // 로컬 스토리지에서 토큰 가져오기 (token 또는 accessToken 키 확인)
-  const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
+axiosInstance.interceptors.request.use((config) => {
+  // 로컬 스토리지에서 토큰 가져오기
+  const token = localStorage.getItem('accessToken');
   
   if (token) {
     // AxiosHeaders 객체인지 확인하여 안전하게 헤더 설정
@@ -91,7 +92,7 @@ axiosInstance.interceptors.response.use(
     ) {
       // 로그인 성공 시 토큰을 로컬 스토리지에 저장
       if (response.data && response.data.token) {
-        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('accessToken', response.data.token);
         console.log('🔐 로그인 토큰이 저장되었습니다.');
       }
     }
@@ -104,6 +105,14 @@ axiosInstance.interceptors.response.use(
    */
   (error: AxiosError) => {
     console.error('[Axios Error]', error.response || error);
+
+    // 401 Unauthorized 에러 시 토큰 만료로 간주하고 자동 로그아웃
+    if (error.response?.status === 401) {
+      console.error('토큰이 만료되었거나 유효하지 않습니다. 자동 로그아웃 처리합니다.');
+      localStorage.removeItem('accessToken');
+      // 페이지 새로고침으로 AuthContext 재초기화
+      window.location.reload();
+    }
 
     // 서버에서 보낸 에러 메시지가 있으면 그걸 사용
     if (error.response?.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
@@ -128,7 +137,7 @@ axiosInstance.interceptors.response.use(
  * @param config - 추가 설정
  * @returns Promise<AxiosResponse<T>>
  */
-export const apiGet = <T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
+export const apiGet = <T = any>(url: string, config?: any): Promise<AxiosResponse<T>> => {
   return axiosInstance.get<T>(url, config);
 };
 
@@ -139,7 +148,7 @@ export const apiGet = <T = any>(url: string, config?: AxiosRequestConfig): Promi
  * @param config - 추가 설정
  * @returns Promise<AxiosResponse<T>>
  */
-export const apiPost = <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
+export const apiPost = <T = any>(url: string, data?: any, config?: any): Promise<AxiosResponse<T>> => {
   return axiosInstance.post<T>(url, data, config);
 };
 
@@ -150,7 +159,7 @@ export const apiPost = <T = any>(url: string, data?: any, config?: AxiosRequestC
  * @param config - 추가 설정
  * @returns Promise<AxiosResponse<T>>
  */
-export const apiPut = <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
+export const apiPut = <T = any>(url: string, data?: any, config?: any): Promise<AxiosResponse<T>> => {
   return axiosInstance.put<T>(url, data, config);
 };
 
@@ -160,7 +169,7 @@ export const apiPut = <T = any>(url: string, data?: any, config?: AxiosRequestCo
  * @param config - 추가 설정
  * @returns Promise<AxiosResponse<T>>
  */
-export const apiDelete = <T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
+export const apiDelete = <T = any>(url: string, config?: any): Promise<AxiosResponse<T>> => {
   return axiosInstance.delete<T>(url, config);
 };
 
@@ -171,7 +180,7 @@ export const apiDelete = <T = any>(url: string, config?: AxiosRequestConfig): Pr
  * @param config - 추가 설정
  * @returns Promise<AxiosResponse<T>>
  */
-export const apiPatch = <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
+export const apiPatch = <T = any>(url: string, data?: any, config?: any): Promise<AxiosResponse<T>> => {
   return axiosInstance.patch<T>(url, data, config);
 };
 

@@ -1,0 +1,140 @@
+package com.tripmate.config;
+
+import com.tripmate.constant.Role;
+import com.tripmate.entity.Member;
+import com.tripmate.repository.MemberRepository;
+import com.tripmate.service.ImageService;
+import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
+import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
+
+@Service
+@RequiredArgsConstructor
+public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
+
+    private final MemberRepository memberRepository;
+    private final ImageService imageService;
+
+    @Override
+    public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
+        OAuth2User oAuth2User = new DefaultOAuth2UserService().loadUser(userRequest);
+
+        String registrationId = userRequest.getClientRegistration().getRegistrationId();
+        String userNameAttributeName = userRequest.getClientRegistration().getProviderDetails()
+                .getUserInfoEndpoint().getUserNameAttributeName();
+
+        Map<String, Object> attributes = oAuth2User.getAttributes();
+        String email = extractEmail(registrationId, attributes);
+        String name = extractName(registrationId, attributes);
+        // 1. 소셜 서비스로부터 원본 프로필 이미지 URL을 가져옵니다.
+        String originalProfileImageUrl = extractProfileImage(registrationId, attributes);
+
+        // 기존 회원인지 확인
+        Optional<Member> existingMember = memberRepository.findByEmail(email);
+
+        if (existingMember.isPresent()) {
+            Member member = existingMember.get();
+            if (!"SOCIAL_LOGIN".equals(member.getPassword())) {
+                // 일반 가입자(로컬 회원)라면 소셜 로그인 차단
+                throw new OAuth2AuthenticationException(
+                    new OAuth2Error("email_exists", "이미 해당 이메일로 가입된 계정이 있습니다. 일반 로그인을 이용해 주세요.", null)
+                );
+            }
+            // SOCIAL_LOGIN이면 소셜 로그인 허용
+            return new DefaultOAuth2User(
+                    Collections.singleton(new SimpleGrantedAuthority(member.getRole().toString())),
+                    attributes,
+                    userNameAttributeName
+            );
+        } else {
+            // 새 회원인 경우 회원가입 처리 후 전화번호 입력 페이지로 리다이렉트
+            Member newMember = new Member();
+            // 2. ImageService를 사용해 이미지를 우리 서버에 다운로드하고, 저장된 경로를 받아옵니다.
+            String savedProfileImgPath = imageService.downloadAndSaveImage(originalProfileImageUrl, "profile");
+          System.out.println("카카오 로그인 attributes: " + attributes);
+            // 3. Member 객체에 '저장된 경로'를 설정합니다.
+            newMember.setProfileImg(savedProfileImgPath);
+            newMember.setEmail(email);
+            newMember.setNickname(name);
+            newMember.setRole(Role.USER);
+            newMember.setPassword("SOCIAL_LOGIN"); // 소셜 로그인이므로 비밀번호는 더미값으로 설정
+            newMember.setPhone("000-0000-0000");
+
+            memberRepository.save(newMember);
+
+            // 세션에 전화번호 입력 필요 플래그 설정
+            ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (requestAttributes != null) {
+                HttpSession session = requestAttributes.getRequest().getSession();
+                session.setAttribute("NEED_PHONE_INPUT", true);
+            }
+
+            // 임시 OAuth2User 반환 (실제로는 인증 성공 핸들러에서 처리됨)
+            return new DefaultOAuth2User(
+                    Collections.singleton(new SimpleGrantedAuthority(Role.USER.toString())),
+                    attributes,
+                    userNameAttributeName
+            );
+        }
+    }
+
+    public String extractProvider(Map<String, Object> attributes) {
+        if (attributes.containsKey("response")) return "naver";
+        if (attributes.containsKey("kakao_account")) return "kakao";
+        return "google";
+    }
+
+    public String extractEmail(String provider, Map<String, Object> attributes) {
+        if ("naver".equals(provider)) {
+            Map<String, Object> response = (Map<String, Object>) attributes.get("response");
+            System.out.println(response.toString());
+            return (String) response.get("email");
+        }
+        if ("kakao".equals(provider)) {
+            Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
+            return (String) kakaoAccount.get("email");
+        }
+        // 기본: 구글 등 기타
+        return (String) attributes.get("email");
+    }
+
+    public String extractName(String provider, Map<String, Object> attributes) {
+        if ("naver".equals(provider)) {
+            Map<String, Object> response = (Map<String, Object>) attributes.get("response");
+            return (String) response.get("name");
+        }
+        if ("kakao".equals(provider)) {
+            Map<String, Object> properties = (Map<String, Object>) attributes.get("properties");
+            return (String) properties.get("nickname");
+        }
+        // 기본: 구글 등 기타
+        return (String) attributes.get("name");
+    }
+
+    public String extractProfileImage(String provider, Map<String, Object> attributes) {
+        if ("naver".equals(provider)) {
+            Map<String, Object> naverResponse = (Map<String, Object>) attributes.get("response");
+            return (String) naverResponse.get("profile_image");
+        }
+        if ("kakao".equals(provider)) {
+            Map<String, Object> kakaoProperties = (Map<String, Object>) attributes.get("properties");
+            return (String) kakaoProperties.get("profile_image");
+        }
+        // 기본: 구글 등 기타
+        return (String) attributes.get("picture");
+    }
+}

@@ -39,14 +39,14 @@ TripMate/
 
 ## 🎨 개발 환경 설정
 
-### Frontend 실행
+### Frontend 실행 (포트: 5173)
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-### Backend 실행
+### Backend 실행 (포트: 80)
 ```bash
 ./mvnw spring-boot:run
 ```
@@ -63,6 +63,9 @@ npm run dev
 - ESLint 규칙 준수
 - Spring Boot 3.x 버전 사용
 - Java 21 사용
+- DB 네이밍은 camelCase로 통일
+- Member.java 기준으로 네이밍 통일
+- 백엔드 포트: 80, 프론트엔드 포트: 5173
 
 ## 📝 AI 참고사항
 - 이 프로젝트는 React + Spring Boot 기반
