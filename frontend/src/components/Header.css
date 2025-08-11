@@ -68,8 +68,8 @@ a.main-navbar-link:focus,
 span.main-navbar-link:focus,
 .main-navbar-link:hover,
 .main-navbar-link:focus {
-  background: #ffe08244;
-  color: #ffc107;
+  background: #b3d9e6;
+  color: #4a90e2;
   border-radius: 20px;
 }
 
@@ -88,7 +88,7 @@ span.main-navbar-link:focus,
   left: 0;
   background: #f0f9f8; /* 연한 민트색 배경 */
   border-radius: 12px;
-  box-shadow: 0 8px 32px 0 #0001, 0 1.5px 8px 0 #ffc10722;
+  box-shadow: 0 8px 32px 0 #0001, 0 1.5px 8px 0 #4a90e222;
   padding: 12px 20px;
   z-index: 10;
   list-style: none;
@@ -118,8 +118,8 @@ span.main-navbar-link:focus,
 }
 
 .main-navbar-dropdown-link:hover {
-  background: #ffe08244;
-  color: #ffc107;
+  background: #b3d9e6;
+  color: #4a90e2;
   border-radius: 20px;
 }
 
@@ -220,7 +220,7 @@ span.main-navbar-link:focus,
 }
 
 .logout-btn:hover {
-  color: #ffc107;
+  color: #4a90e2;
 }
 
 /* 반응형 */
@@ -294,8 +294,8 @@ span.main-navbar-link:focus,
 
 .main-navbar-item.disabled .main-navbar-link:hover,
 .main-navbar-item.disabled .main-navbar-link:focus {
-  background: #ffe08244 !important;
-  color: #ffc107 !important;
+  background: #b3d9e6 !important;
+  color: #4a90e2 !important;
 }
 
 /* 데스크탑/모바일 메뉴 구분 */
@@ -401,9 +401,9 @@ span.main-navbar-link:focus,
     text-decoration: none !important;
   }
   .mobile-nav-link:hover {
-    color: #ffc107 !important;
-    background: #ffe08244;
-  }
+  color: #4a90e2 !important;
+  background: #b3d9e6;
+}
   .mobile-nav-link.disabled {
     cursor: default;
     color: #888 !important;
@@ -452,8 +452,8 @@ span.main-navbar-link:focus,
     transition: color 0.2s;
   }
   .mobile-nav-submenu a:hover {
-    color: #ffc107;
-  }
+  color: #4a90e2;
+}
   .mobile-nav-bottom {
     position: fixed;
     left: auto;
@@ -488,14 +488,14 @@ span.main-navbar-link,
   color: #223a5e;
 }
 
-/* 데스크탑: 드롭다운 열렸을 때 머스터드 */
+/* 데스크탑: 드롭다운 열렸을 때 쿨톤 블루 */
 .main-navbar-item.has-dropdown.open > .main-navbar-link {
-  color: #ffc107 !important;
+  color: #4a90e2 !important;
 }
 
-/* 모바일: 아코디언 열렸을 때 머스터드 */
+/* 모바일: 아코디언 열렸을 때 쿨톤 블루 */
 .mobile-nav-link.open {
-  color: #ffc107 !important;
+  color: #4a90e2 !important;
 }
 
 .mobile-nav-overlay,
@@ -611,7 +611,7 @@ span.main-navbar-link,
 
 .profile-modal-close:hover {
   background: none;
-  color: #ffc107; /* X만 머스터드 색상 */
+  color: #4a90e2; /* X만 쿨톤 블루 색상 */
 }
 
 .profile-nickname {
@@ -646,7 +646,7 @@ span.main-navbar-link,
 }
 
 .profile-nickname.clickable:hover {
-  color: #ffc107;
+  color: #4a90e2;
 }
 
 .profile-dropdown-menu {
@@ -685,5 +685,5 @@ span.main-navbar-link,
 }
 
 .main-navbar-login-btn:hover {
-  color: #ffc107;
+  color: #4a90e2;
 }
