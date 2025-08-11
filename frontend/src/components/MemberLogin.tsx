@@ -52,7 +52,7 @@ function LoginForm() {
     setLoginError('');
     
     try {
-      const response = await axiosInstance.post('/login', { email, password });
+      const response = await axiosInstance.post('/members/login', { email, password });
       const data = response.data;
       console.log('로그인 응답 데이터:', data); // 디버깅용
       

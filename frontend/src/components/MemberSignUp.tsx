@@ -293,7 +293,7 @@ const MemberSignUp = () => {
 
       // 프로필 이미지 파일이 있으면 추가
       if (form.profileImgFile) {
-        formData.append('member_ProfileImgFile', form.profileImgFile);
+        formData.append('profileImgFile', form.profileImgFile);
       }
 
       const response = await axiosInstance.post('/members/signup', formData);

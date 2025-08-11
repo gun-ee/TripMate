@@ -37,11 +37,17 @@ public class MemberService implements UserDetailsService {
         try {
             // 2. ImageService를 사용하여 파일 업로드
             // 첫 번째 인자는 MultipartFile 객체, 두 번째 인자는 저장할 위치 타입("profile")입니다.
+            System.out.println("=== 이미지 업로드 시작 ===");
+            System.out.println("업로드할 파일: " + (memberFormDto.getProfileImgFile() != null ? memberFormDto.getProfileImgFile().getOriginalFilename() : "null"));
             savedProfileImgPath = imageService.uploadFile(memberFormDto.getProfileImgFile(), "profile");
+            System.out.println("저장된 이미지 경로: " + savedProfileImgPath);
+            System.out.println("=== 이미지 업로드 완료 ===");
 
         } catch (Exception e) {
             // 이미지 업로드 중 에러가 발생하면 런타임 예외를 발생시켜 트랜잭션을 롤백합니다.
             // 실제 운영 코드에서는 로깅을 추가하는 것이 좋습니다.
+            System.err.println("이미지 업로드 실패: " + e.getMessage());
+            e.printStackTrace();
             throw new RuntimeException("프로필 이미지 업로드 중 오류가 발생했습니다.", e);
         }
 
