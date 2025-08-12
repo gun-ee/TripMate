@@ -38,7 +38,26 @@ const TripTalk: React.FC = () => {
     image: null as File | null
   });
 
+  // 날씨 관련 상태 추가
+  const [weather, setWeather] = useState<any>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+
+
   const categories = ['동행', '날씨', '양도', '장소'];
+
+  // 날씨 정보 가져오기 함수 추가
+  const fetchOsakaWeather = async () => {
+    setWeatherLoading(true);
+    try {
+      const response = await axiosInstance.get('/weather/osaka');
+      setWeather(response.data);
+      console.log('오사카 날씨 정보:', response.data);
+    } catch (error) {
+      console.error('날씨 정보 가져오기 실패:', error);
+    } finally {
+      setWeatherLoading(false);
+    }
+  };
 
   // 사용자 정보 가져오기
   useEffect(() => {
@@ -61,6 +80,14 @@ const TripTalk: React.FC = () => {
       fetchUserInfo();
     }
   }, [isLoggedIn]);
+
+  // 날씨 정보 가져오기 useEffect 추가
+  useEffect(() => {
+    fetchOsakaWeather();
+    // 30분마다 업데이트
+    const interval = setInterval(fetchOsakaWeather, 30 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // 더미 데이터 (실제로는 API에서 가져옴)
   useEffect(() => {
@@ -378,21 +405,46 @@ const TripTalk: React.FC = () => {
 
         {/* 우측 사이드바 */}
         <div className="triptalk-sidebar-right">
+          {/* 실시간 정보 - 기존 코드를 교체 */}
           <div className="sidebar-card">
-            <h3>실시간 정보</h3>
+            <h3>오사카 실시간 정보</h3>
             <div className="live-info">
-              <div className="info-item">
-                <span className="info-label">현재 온도</span>
-                <span className="info-value">25°C</span>
-              </div>
-              <div className="info-item">
-                <span className="info-label">습도</span>
-                <span className="info-value">65%</span>
-              </div>
-              <div className="info-item">
-                <span className="info-label">바람</span>
-                <span className="info-value">2m/s</span>
-              </div>
+              {weatherLoading ? (
+                <div className="info-item">
+                  <span className="info-label">날씨 정보 로딩 중...</span>
+                </div>
+              ) : weather ? (
+                <>
+                  <div className="info-item">
+                    <span className="info-label">현재 온도</span>
+                    <span className="info-value">{weather.tempC}°C</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">체감 온도</span>
+                    <span className="info-value">{weather.feelslikeC}°C</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">습도</span>
+                    <span className="info-value">{weather.humidity}%</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">바람</span>
+                    <span className="info-value">{weather.windKph} km/h</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">날씨</span>
+                    <span className="info-value">{weather.condition}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">자외선 지수</span>
+                    <span className="info-value">{weather.uv}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="info-item">
+                  <span className="info-label">날씨 정보를 불러올 수 없습니다</span>
+                </div>
+              )}
             </div>
           </div>
           
