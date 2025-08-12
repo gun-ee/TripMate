@@ -51,9 +51,10 @@ const TripTalk: React.FC = () => {
     try {
       const response = await axiosInstance.get('/weather/osaka');
       setWeather(response.data);
-      console.log('오사카 날씨 정보:', response.data);
+      console.log('🌤️ [TripTalk] 오사카 날씨 정보:', response.data);
+      console.log('🌤️ [TripTalk] 날씨 아이콘 URL:', response.data.weatherIcon);
     } catch (error) {
-      console.error('날씨 정보 가져오기 실패:', error);
+      console.error('🌤️ [TripTalk] 날씨 정보 가져오기 실패:', error);
     } finally {
       setWeatherLoading(false);
     }
@@ -433,7 +434,30 @@ const TripTalk: React.FC = () => {
                   </div>
                   <div className="info-item">
                     <span className="info-label">날씨</span>
-                    <span className="info-value">{weather.condition}</span>
+                                         <div className="weather-condition">
+                       {weather.weatherIcon && weather.weatherIcon.trim() !== '' ? (
+                         weather.weatherIcon.startsWith('http') ? (
+                           <img 
+                             src={weather.weatherIcon} 
+                             alt="날씨 아이콘" 
+                             className="weather-icon"
+                             onError={(e) => {
+                               console.error('🌤️ [TripTalk] 아이콘 로드 실패:', weather.weatherIcon);
+                               const target = e.target as HTMLImageElement;
+                               target.style.display = 'none';
+                             }}
+                             onLoad={() => {
+                               console.log('🌤️ [TripTalk] 아이콘 로드 성공:', weather.weatherIcon);
+                             }}
+                           />
+                         ) : (
+                           <span className="weather-emoji">{weather.weatherIcon}</span>
+                         )
+                       ) : (
+                         <span className="weather-placeholder">🌤️</span>
+                       )}
+                       <span className="info-value">{weather.condition}</span>
+                     </div>
                   </div>
                   <div className="info-item">
                     <span className="info-label">자외선 지수</span>

@@ -19,4 +19,5 @@ public class WeatherInfo {
     private double pressureMb;      // 기압 (mb)
     private String lastUpdated;     // 마지막 업데이트 시간
     private String city;            // 도시명
+    private String weatherIcon;     // 날씨 아이콘 URL
 }
