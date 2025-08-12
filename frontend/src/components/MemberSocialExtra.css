@@ -1,0 +1,237 @@
+/* MemberSocialExtra.css */
+
+:root {
+  --main-bg: #e0f2f1;
+  --container-bg: #fff;
+  --input-bg: #f0f9f8;
+  --input-border: #b2dfdb;
+  --text-main: #1a5f7a;
+  --text-sub: #4a7c59;
+  --mustard: #26a69a;
+  --mustard-dark: #00897b;
+  --btn-blue: #4db6ac;
+  --success-bg: #e8f5e8;
+  --success-border: #4caf50;
+  --success-text: #2e7d32;
+  --error-bg: #ffebee;
+  --error-border: #f44336;
+  --error-text: #c62828;
+}
+
+.member-social-extra-page {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--main-bg);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.member-social-extra-container {
+  background: var(--container-bg);
+  border-radius: 1rem;
+  box-shadow: 0 0.25rem 1rem 0 rgba(0, 0, 0, 0.1),
+    0 0.05rem 0.25rem 0 rgba(38, 166, 154, 0.2);
+  border: 0.05rem solid var(--input-border);
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 28rem;
+  position: relative;
+}
+
+.member-social-extra-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.logo-container {
+  cursor: pointer;
+  margin-bottom: 1.5rem;
+}
+
+.logo-img {
+  height: 6rem;
+  margin: 0 auto 0.5rem;
+}
+
+.header-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 2.25rem;
+}
+
+.profile-image-wrapper {
+  position: relative;
+  width: 6rem;
+  height: 6rem;
+  margin: 0 auto 1.5rem;
+}
+
+.profile-image {
+  width: 6rem;
+  height: 6rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 0.125rem solid var(--mustard);
+  box-shadow: 0 0.25rem 1rem 0 rgba(0, 0, 0, 0.1);
+}
+
+.profile-image-placeholder {
+  width: 6rem;
+  height: 6rem;
+  border-radius: 50%;
+  background: var(--input-bg);
+  border: 0.125rem solid var(--mustard);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0.25rem 1rem 0 rgba(0, 0, 0, 0.1);
+}
+
+.profile-image-placeholder svg {
+  width: 3rem;
+  height: 3rem;
+  color: var(--btn-blue);
+}
+
+.hidden {
+  display: none;
+}
+
+.user-info {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.user-nickname {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.25rem;
+}
+
+.user-email {
+  font-size: 0.875rem;
+  color: var(--text-sub);
+}
+
+.message {
+  padding: 0.75rem;
+  margin-bottom: 1.5rem;
+  border-radius: 0.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+.message.success {
+  background-color: var(--success-bg);
+  color: var(--success-text);
+  border: 0.0625rem solid var(--success-border);
+}
+
+.message.error {
+  background-color: var(--error-bg);
+  color: var(--error-text);
+  border: 0.0625rem solid var(--error-border);
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-main);
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 0.125rem solid var(--input-border);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  background: var(--input-bg);
+  color: var(--text-main);
+  box-sizing: border-box;
+}
+
+.form-group input::placeholder {
+  color: var(--text-sub);
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--mustard);
+  box-shadow: 0 0 0 0.125rem rgba(38, 166, 154, 0.3);
+  background: #fff;
+}
+
+.submit-button {
+  width: 100%;
+  padding: 1rem 0;
+  background: linear-gradient(135deg, var(--mustard), var(--btn-blue));
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  transform: translateY(0);
+  box-shadow: 0 0.25rem 1rem 0 rgba(0, 0, 0, 0.1);
+}
+
+.submit-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--mustard-dark), var(--mustard));
+  transform: translateY(-0.125rem);
+  box-shadow: 0 0.5rem 1.5rem 0 rgba(0, 0, 0, 0.15);
+}
+
+.submit-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.submit-button:disabled:hover {
+  transform: none;
+  box-shadow: 0 0.25rem 1rem 0 rgba(0, 0, 0, 0.1);
+}
+
+/* 반응형 디자인 */
+@media (max-width: 640px) {
+  .member-social-extra-container {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+  
+  .logo-img {
+    height: 5rem;
+  }
+  
+  .header-title {
+    font-size: 1.125rem;
+  }
+  
+  .profile-image-wrapper {
+    width: 5rem;
+    height: 5rem;
+  }
+  
+  .profile-image,
+  .profile-image-placeholder {
+    width: 5rem;
+    height: 5rem;
+  }
+  
+  .profile-image-placeholder svg {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
