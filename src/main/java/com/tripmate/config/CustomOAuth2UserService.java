@@ -65,7 +65,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             Member newMember = new Member();
             // 2. ImageService를 사용해 이미지를 우리 서버에 다운로드하고, 저장된 경로를 받아옵니다.
             String savedProfileImgPath = imageService.downloadAndSaveImage(originalProfileImageUrl, "profile");
-          System.out.println("카카오 로그인 attributes: " + attributes);
+          System.out.println("소셜로그인 attributes: " + attributes);
             // 3. Member 객체에 '저장된 경로'를 설정합니다.
             newMember.setProfileImg(savedProfileImgPath);
             newMember.setEmail(email);
