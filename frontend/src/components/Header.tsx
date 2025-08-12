@@ -37,12 +37,10 @@ const baseMenu: MenuItem[] = [
     ],
   },
   {
-    name: '서비스',
-    submenu: [
-      { name: '동물병원&편의시설', link: '/place' },
-      { name: '산책로', link: '/trails' },
-    ],
-    disabled: true,
+    name: '트립톡',
+    link: '/triptalk',
+    submenu: [],
+    disabled: false,
   },
   {
     name: '마이페이지',
@@ -55,6 +53,7 @@ const Header: React.FC = () => {
   const [openMenu, setOpenMenu] = useState<number | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState<boolean>(false);
   const [accordionOpen, setAccordionOpen] = useState<number | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
   const { isLoggedIn, logout, isAdmin, profileImg, nickname } = useAuth();
   
   // profileImg, nickname 상태 변화 감지 로그 (무한 루프 방지)
@@ -200,11 +199,6 @@ const Header: React.FC = () => {
         {/* 우측 아이콘/프로필 (로그인 상태) */}
         {isLoggedIn ? (
           <div className="main-navbar-right desktop-menu">
-            <button
-              className="main-navbar-icon-btn"
-              onClick={() => setIsChatListOpen(true)}
-            >
-            </button>
             <div className="main-navbar-profile-container">
               <div
                 className="main-navbar-profile"
@@ -363,6 +357,38 @@ const Header: React.FC = () => {
            )}
          </div>
       </div>
+
+      {/* 프로필 이미지 확대 모달 */}
+      {showProfileModal && (
+        <div className="profile-modal-overlay" onClick={() => setShowProfileModal(false)}>
+          <div className="profile-modal" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="profile-modal-close"
+              onClick={() => setShowProfileModal(false)}
+            >
+              <FaTimes size={24} />
+            </button>
+            <div className="profile-modal-content">
+              <img
+                src={profileImg ? `http://localhost:80${profileImg}` : '/images/logo.png'}
+                alt="프로필 확대"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  if (target.src !== '/images/logo.png') {
+                    target.src = '/images/logo.png';
+                  }
+                }}
+              />
+              {nickname && (
+                <div className="profile-modal-info">
+                  <h3>{nickname}</h3>
+                  <p>프로필 이미지</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </nav>
   );

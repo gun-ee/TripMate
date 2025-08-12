@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext';
 import Home from './components/Home';
 import MemberLogin from './components/MemberLogin';
-import MemberSignup from './components/MemberSignup';
+import MemberSignup from './components/MemberSignUp';
+import TripTalk from './components/TripTalk';
 import OAuth2RedirectHandler from './components/OAuth2RedirectHandler';
 import OAuthRedirect from './components/OAuthRedirect';
 import MemberSocialExtra from './components/MemberSocialExtra';
@@ -18,6 +19,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<MemberLogin />} />
             <Route path="/signup" element={<MemberSignup />} />
+            <Route path="/triptalk" element={<TripTalk />} />
             <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
             <Route path="/oauth/redirect" element={<OAuthRedirect />} />
             <Route path="/members/social-extra" element={<MemberSocialExtra />} />

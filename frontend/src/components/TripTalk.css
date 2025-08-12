@@ -1,0 +1,771 @@
+/* CSS 변수 정의 - 테마 변경 및 모바일 앱 호환성 */
+:root {
+  --primary-color: #1877f2;
+  --primary-hover: #166fe5;
+  --background-color: #f0f2f5;
+  --card-background: #ffffff;
+  --text-primary: #1c1e21;
+  --text-secondary: #65676b;
+  --text-muted: #8e8e93;
+  --border-color: #dddfe2;
+  --shadow: 0 2px 4px rgba(0,0,0,0.1);
+  --border-radius: 12px;
+  --border-radius-small: 8px;
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 20px;
+  --spacing-xl: 24px;
+  --spacing-xxl: 32px;
+}
+
+/* 다크 모드 지원 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-color: #1a1a1a;
+    --card-background: #2d2d2d;
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0b0;
+    --text-muted: #808080;
+    --border-color: #404040;
+    --shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+}
+
+.triptalk-container {
+  width: 100vw;
+  min-height: calc(100vh - 80px); /* 헤더 높이만큼 제외 */
+  background-color: var(--background-color);
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  gap: var(--spacing-xl);
+  padding: var(--spacing-xl);
+  box-sizing: border-box;
+  /* 모바일 앱 호환성을 위한 스크롤 최적화 */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  /* 화면 전체 차지 */
+  margin: 0;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  /* 헤더와의 간격 */
+  margin-top: 0;
+}
+
+/* PC 레이아웃 - 좌측 사이드바 */
+.triptalk-sidebar-left {
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* PC 레이아웃 - 메인 콘텐츠 */
+.triptalk-main {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* PC 레이아웃 - 우측 사이드바 */
+.triptalk-sidebar-right {
+  grid-column: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 헤더 스타일 */
+.triptalk-header {
+  background: var(--card-background);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-xxl);
+  margin-bottom: 0;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.triptalk-header h1 {
+  margin: 0 0 var(--spacing-lg) 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.triptalk-stats {
+  display: flex;
+  gap: 48px;
+  margin-bottom: var(--spacing-xl);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.triptalk-image {
+  position: absolute;
+  top: var(--spacing-xxl);
+  right: var(--spacing-xxl);
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid var(--primary-color);
+}
+
+.triptalk-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 필터 스타일 */
+.triptalk-filters {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  padding: 8px 16px;
+  border: 1px solid #dddfe2;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  color: #1c1e21;
+  cursor: pointer;
+}
+
+.traveling-only {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #65676b;
+  cursor: pointer;
+}
+
+.traveling-only input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+/* 새 게시글 작성 */
+.create-post {
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.post-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.author-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.author-name {
+  font-weight: 600;
+  color: #1c1e21;
+}
+
+.category-buttons {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.category-btn {
+  padding: 8px 16px;
+  border: 1px solid #dddfe2;
+  border-radius: 20px;
+  background: white;
+  color: #65676b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.category-btn.active {
+  background: #1877f2;
+  color: white;
+  border-color: #1877f2;
+}
+
+.post-title-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #dddfe2;
+  border-radius: 8px;
+  font-size: 16px;
+  margin-bottom: 16px;
+  border-left: 4px solid #1877f2;
+}
+
+.post-content-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #dddfe2;
+  border-radius: 8px;
+  font-size: 16px;
+  min-height: 100px;
+  resize: vertical;
+  margin-bottom: 20px;
+}
+
+.post-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.image-upload {
+  flex: 1;
+  margin-right: 16px;
+}
+
+.submit-btn {
+  padding: 12px 24px;
+  background: #1877f2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  /* 모바일 앱 호환성을 위한 터치 최적화 */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px; /* iOS 터치 최소 크기 */
+}
+
+.submit-btn:hover {
+  background: #166fe5;
+}
+
+/* 게시글 카드 */
+.post-card {
+  background: white;
+  border-radius: 12px;
+  padding: 28px;
+  margin-bottom: 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.post-card .post-header {
+  margin-bottom: 16px;
+}
+
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.author-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.author-name {
+  font-weight: 600;
+  color: #1c1e21;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.traveling-badge {
+  background: #42a5f5;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.post-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #65676b;
+}
+
+.post-meta .icon {
+  font-size: 12px;
+}
+
+.more-btn {
+  background: none;
+  border: none;
+  color: #65676b;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.more-btn:hover {
+  background: #f0f2f5;
+}
+
+.post-content {
+  margin-bottom: 20px;
+}
+
+.post-title {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1c1e21;
+}
+
+.post-text {
+  margin: 0;
+  font-size: 16px;
+  color: #1c1e21;
+  line-height: 1.5;
+}
+
+.post-image {
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+/* 게시글 액션 */
+.post-actions {
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid #dddfe2;
+  padding-top: 16px;
+}
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: none;
+  border: none;
+  color: #65676b;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.2s;
+  font-size: 14px;
+  /* 모바일 앱 호환성을 위한 터치 최적화 */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px; /* iOS 터치 최소 크기 */
+}
+
+.action-btn:hover {
+  background: #f0f2f5;
+}
+
+.like-btn:hover {
+  color: #e41e3f;
+}
+
+.comment-btn:hover {
+  color: #1877f2;
+}
+
+.share-btn:hover {
+  color: #42a5f5;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 1400px) {
+  .triptalk-container {
+    grid-template-columns: 240px 1fr 280px;
+    gap: 20px;
+    padding: 20px;
+    width: 100vw;
+    margin-left: -50vw;
+    margin-right: -50vw;
+  }
+}
+
+@media (max-width: 1200px) {
+  .triptalk-container {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 20px;
+    width: 100vw;
+    margin-left: -50vw;
+    margin-right: -50vw;
+  }
+  
+  .triptalk-sidebar-left,
+  .triptalk-sidebar-right {
+    display: none;
+  }
+  
+  .triptalk-main {
+    grid-column: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .triptalk-container {
+    padding: 16px;
+    gap: 16px;
+    width: 100vw;
+    margin-left: -50vw;
+    margin-right: -50vw;
+  }
+  
+  .triptalk-header {
+    padding: 20px;
+  }
+  
+  .triptalk-header h1 {
+    font-size: 24px;
+  }
+  
+  .triptalk-stats {
+    gap: 20px;
+  }
+  
+  .triptalk-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filter-select {
+    width: 100%;
+  }
+  
+  .category-buttons {
+    flex-wrap: wrap;
+  }
+  
+  .post-footer {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .image-upload {
+    margin-right: 0;
+    margin-bottom: 8px;
+  }
+}
+
+/* 모바일 앱 호환성을 위한 추가 스타일 */
+@media (max-width: 480px) {
+  .triptalk-container {
+    padding: 12px;
+    gap: 12px;
+    width: 100vw;
+    margin-left: -50vw;
+    margin-right: -50vw;
+  }
+  
+  .triptalk-header {
+    padding: 16px;
+    border-radius: 8px;
+  }
+  
+  .triptalk-header h1 {
+    font-size: 20px;
+  }
+  
+  .triptalk-stats {
+    gap: 16px;
+  }
+  
+  .stat-value {
+    font-size: 16px;
+  }
+  
+  .triptalk-filters {
+    padding: 16px;
+    border-radius: 8px;
+  }
+  
+  .create-post {
+    padding: 20px;
+    border-radius: 8px;
+  }
+  
+  .post-card {
+    padding: 20px;
+    border-radius: 8px;
+  }
+  
+  .sidebar-card {
+    padding: 16px;
+    border-radius: 8px;
+  }
+}
+
+/* 태블릿 최적화 */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .triptalk-container {
+    grid-template-columns: 200px 1fr 240px;
+    gap: 16px;
+    padding: 20px;
+    width: 100vw;
+    margin-left: -50vw;
+    margin-right: -50vw;
+  }
+  
+  .triptalk-sidebar-left,
+  .triptalk-sidebar-right {
+    gap: 16px;
+  }
+  
+  .sidebar-card {
+    padding: 20px;
+  }
+}
+
+/* 대형 화면 최적화 */
+@media (min-width: 1600px) {
+  .triptalk-container {
+    grid-template-columns: 320px 1fr 400px;
+    gap: 32px;
+    padding: 32px;
+    width: 100vw;
+    margin-left: -50vw;
+    margin-right: -50vw;
+  }
+  
+  .triptalk-header {
+    padding: 40px;
+  }
+  
+  .triptalk-header h1 {
+    font-size: 36px;
+  }
+  
+  .triptalk-stats {
+    gap: 64px;
+  }
+  
+  .stat-value {
+    font-size: 20px;
+  }
+  
+  .triptalk-image {
+    width: 120px;
+    height: 120px;
+    top: 40px;
+    right: 40px;
+  }
+}
+
+
+
+/* 사이드바 카드 스타일 */
+.sidebar-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  /* 모바일 앱 호환성을 위한 터치 최적화 */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sidebar-card h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1c1e21;
+  border-bottom: 2px solid #f0f2f5;
+  padding-bottom: 12px;
+}
+
+/* 빠른 필터 */
+.quick-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.quick-filter-btn {
+  padding: 12px 16px;
+  border: 1px solid #dddfe2;
+  border-radius: 8px;
+  background: white;
+  color: #65676b;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  font-size: 14px;
+  /* 모바일 앱 호환성을 위한 터치 최적화 */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px; /* iOS 터치 최소 크기 */
+}
+
+.quick-filter-btn:hover {
+  background: #f0f2f5;
+  border-color: #1877f2;
+}
+
+.quick-filter-btn.active {
+  background: #1877f2;
+  color: white;
+  border-color: #1877f2;
+}
+
+/* 인기 게시글 */
+.trending-posts {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.trending-post {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+
+.trending-post:hover {
+  background: #f0f2f5;
+}
+
+.trending-number {
+  background: #1877f2;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.trending-title {
+  font-size: 14px;
+  color: #1c1e21;
+  flex: 1;
+}
+
+/* 실시간 정보 */
+.live-info {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.info-label {
+  font-weight: 600;
+  color: #1c1e21;
+  font-size: 14px;
+}
+
+.info-value {
+  color: #65676b;
+  font-size: 14px;
+}
+
+/* 최근 활동 */
+.recent-activities {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.activity-item:hover {
+  background: #f0f2f5;
+}
+
+.activity-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.activity-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.activity-user {
+  font-weight: 600;
+  color: #1c1e21;
+  font-size: 14px;
+}
+
+.activity-action {
+  color: #65676b;
+  font-size: 13px;
+}
+
+.activity-time {
+  color: #8e8e93;
+  font-size: 12px;
+}

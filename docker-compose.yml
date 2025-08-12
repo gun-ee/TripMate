@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # Spring Boot 백엔드
+  backend:
+    build: .
+    ports:
+      - "80:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - db
+    networks:
+      - tripmate-network
+
+  # React 프론트엔드
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - tripmate-network
+
+  # MySQL 데이터베이스 (필요시)
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: tripmate
+      MYSQL_USER: tripmate
+      MYSQL_PASSWORD: tripmate123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - tripmate-network
+
+  # Redis (필요시)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - tripmate-network
+
+networks:
+  tripmate-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
