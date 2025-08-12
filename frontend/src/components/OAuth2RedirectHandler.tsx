@@ -47,13 +47,13 @@ const OAuth2RedirectHandler: React.FC = () => {
 
     if (needPhoneInput === 'true') {
       fetchMemberInfo(token).then(memberInfo => {
-        navigate('/update-phone', {
+        navigate('/members/social-extra', {
           state: { member: memberInfo },
           replace: true
         });
       }).catch(error => {
         console.error('회원 정보 가져오기 실패:', error);
-        navigate('/update-phone', { replace: true });
+        navigate('/members/social-extra', { replace: true });
       });
     } else {
       navigate('/', { replace: true });
