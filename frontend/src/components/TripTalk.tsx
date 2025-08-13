@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaHeart, FaComment, FaShare, FaEllipsisH, FaMapMarkerAlt, FaClock } from 'react-icons/fa';
+import { FaHeart, FaComment, FaClock } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import axiosInstance from '../api/axios';
 import Header from './Header';
@@ -20,8 +20,7 @@ interface Post {
   image?: string;
   likes: number;
   comments: number;
-  shares: number;
-  category: string;
+  createdAt: Date; // 실제 생성 시간을 저장할 필드 추가
 }
 
 const TripTalk: React.FC = () => {
@@ -29,21 +28,33 @@ const TripTalk: React.FC = () => {
   const [profileImg, setProfileImg] = useState<string>('');
   const [nickname, setNickname] = useState<string>('');
   const [posts, setPosts] = useState<Post[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('전체');
   const [showOnlyTraveling, setShowOnlyTraveling] = useState<boolean>(false);
   const [newPost, setNewPost] = useState({
     title: '',
     content: '',
-    category: '동행',
     image: null as File | null
   });
 
+  // 무한스크롤링 관련 상태
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [postsPerPage] = useState<number>(10);
+
   // 날씨 관련 상태 추가
-  const [weather, setWeather] = useState<any>(null);
+  const [weather, setWeather] = useState<{
+    tempC: number;
+    feelslikeC: number;
+    humidity: number;
+    windKph: number;
+    weatherIcon: string;
+    condition: string;
+    uv: number;
+  } | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
 
 
-  const categories = ['동행', '날씨', '양도', '장소'];
+
 
   // 날씨 정보 가져오기 함수 추가
   const fetchOsakaWeather = async () => {
@@ -90,45 +101,89 @@ const TripTalk: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // 더미 데이터 (실제로는 API에서 가져옴)
-  useEffect(() => {
-    const dummyPosts: Post[] = [
-      {
-        id: 1,
+  // 시간 표시 함수 추가
+  const formatTimestamp = (createdAt: Date): string => {
+    const now = new Date();
+    const diffInMs = now.getTime() - createdAt.getTime();
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes}분전`;
+    } else if (diffInHours < 24) {
+      return `${diffInHours}시간전`;
+    } else if (diffInDays < 7) {
+      return `${diffInDays}일전`;
+    } else {
+      return createdAt.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+    }
+  };
+
+
+
+  // 게시글 로드 함수 (무한스크롤링용)
+  const loadPosts = async (page: number = 1, append: boolean = false) => {
+    if (isLoading) return;
+    
+    setIsLoading(true);
+    try {
+      // 실제 API 호출 시 사용할 코드
+      // const response = await axiosInstance.get(`/posts?page=${page}&size=${postsPerPage}`);
+      // const newPosts = response.data.content;
+      
+      // 임시로 더미 데이터 생성 (실제 DB 연동 시 제거)
+      const dummyPosts: Post[] = Array.from({ length: postsPerPage }, (_, index) => ({
+        id: (page - 1) * postsPerPage + index + 1,
         author: {
           id: 1,
           username: 'hyeyoung',
           profileImg: '/images/logo.png',
           isTraveling: true
         },
-        location: '25.08 오사카',
+        location: '오사카',
         timestamp: '1시간전',
-        title: '이소노우라 해변',
-        content: '현재 수영가능한가요?',
-        likes: 0,
-        comments: 0,
-        shares: 0,
-        category: '장소'
-      },
-      {
-        id: 2,
-        author: {
-          id: 1,
-          username: 'hyeyoung',
-          profileImg: '/images/logo.png',
-          isTraveling: true
-        },
-        location: '25.08 오사카',
-        timestamp: '1시간전',
-        title: '오사카 맛집',
-        content: '어떤게 있을까요',
-        likes: 0,
-        comments: 0,
-        shares: 0,
-        category: '장소'
+        title: `게시글 제목 ${(page - 1) * postsPerPage + index + 1}`,
+        content: `게시글 내용 ${(page - 1) * postsPerPage + index + 1}입니다.`,
+        likes: Math.floor(Math.random() * 10),
+        comments: Math.floor(Math.random() * 5),
+        createdAt: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000)
+      }));
+
+      if (append) {
+        setPosts(prev => [...prev, ...dummyPosts]);
+      } else {
+        setPosts(dummyPosts);
       }
-    ];
-    setPosts(dummyPosts);
+
+      // 더미 데이터이므로 항상 다음 페이지가 있다고 가정 (실제로는 API 응답에 따라 결정)
+      setHasMore(dummyPosts.length === postsPerPage);
+      setCurrentPage(page);
+      
+    } catch (error) {
+      console.error('게시글 로드 실패:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 스크롤 이벤트 핸들러
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    
+    // 스크롤이 하단에 도달했을 때 다음 페이지 로드
+    if (scrollTop + clientHeight >= scrollHeight - 100 && hasMore && !isLoading) {
+      loadPosts(currentPage + 1, true);
+    }
+  };
+
+  // 초기 게시글 로드
+  useEffect(() => {
+    loadPosts(1, false);
   }, []);
 
   const handleLike = (postId: number) => {
@@ -144,7 +199,6 @@ const TripTalk: React.FC = () => {
     const formData = new FormData();
     formData.append('title', newPost.title);
     formData.append('content', newPost.content);
-    formData.append('category', newPost.category);
     if (newPost.image) {
       formData.append('image', newPost.image);
     }
@@ -169,12 +223,11 @@ const TripTalk: React.FC = () => {
         content: newPost.content,
         likes: 0,
         comments: 0,
-        shares: 0,
-        category: newPost.category
+        createdAt: new Date()
       };
       
       setPosts([newPostObj, ...posts]);
-      setNewPost({ title: '', content: '', category: '동행', image: null });
+      setNewPost({ title: '', content: '', image: null });
     } catch (error) {
       console.error('게시글 작성 실패:', error);
     }
@@ -187,7 +240,6 @@ const TripTalk: React.FC = () => {
   };
 
   const filteredPosts = posts.filter(post => {
-    if (selectedCategory !== '전체' && post.category !== selectedCategory) return false;
     if (showOnlyTraveling && !post.author.isTraveling) return false;
     return true;
   });
@@ -249,18 +301,6 @@ const TripTalk: React.FC = () => {
 
           {/* 필터 */}
           <div className="triptalk-filters">
-            <select 
-              value={selectedCategory} 
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="filter-select"
-            >
-              <option value="전체">도시전체</option>
-              <option value="동행">동행</option>
-              <option value="날씨">날씨</option>
-              <option value="양도">양도</option>
-              <option value="장소">장소</option>
-            </select>
-            
             <select className="filter-select">
               <option>여행시기</option>
             </select>
@@ -298,19 +338,6 @@ const TripTalk: React.FC = () => {
               </div>
               
               <form onSubmit={handleSubmitPost}>
-                <div className="category-buttons">
-                  {categories.map(category => (
-                    <button
-                      key={category}
-                      type="button"
-                      className={`category-btn ${newPost.category === category ? 'active' : ''}`}
-                      onClick={() => setNewPost({...newPost, category})}
-                    >
-                      {category}
-                    </button>
-                  ))}
-                </div>
-                
                 <input
                   type="text"
                   placeholder="제목을 입력해주세요"
@@ -352,7 +379,7 @@ const TripTalk: React.FC = () => {
           )}
 
           {/* 게시글 목록 */}
-          <div className="posts-container">
+          <div className="posts-container" onScroll={handleScroll}>
             {filteredPosts.map(post => (
               <div key={post.id} className="post-card">
                 <div className="post-header">
@@ -365,16 +392,11 @@ const TripTalk: React.FC = () => {
                     <span className="author-name">{post.author.username}</span>
                     <div className="post-meta">
                       <span className="location">
-                        <FaMapMarkerAlt /> {post.location}
-                      </span>
-                      <span className="timestamp">
-                        <FaClock /> {post.timestamp}
+                        {post.location}
                       </span>
                     </div>
                   </div>
-                  <button className="post-menu-btn">
-                    <FaEllipsisH />
-                  </button>
+                  
                 </div>
                 
                 <div className="post-content">
@@ -386,21 +408,38 @@ const TripTalk: React.FC = () => {
                 </div>
                 
                 <div className="post-footer">
-                  <button 
-                    className="action-btn"
-                    onClick={() => handleLike(post.id)}
-                  >
-                    <FaHeart /> 좋아요 {post.likes}
-                  </button>
-                  <button className="action-btn">
-                    <FaComment /> 댓글 {post.comments}
-                  </button>
-                  <button className="action-btn">
-                    <FaShare /> 공유 {post.shares}
-                  </button>
+                  <div className="post-actions-left">
+                    <button 
+                      className="action-btn"
+                      onClick={() => handleLike(post.id)}
+                    >
+                      <FaHeart /> {post.likes}
+                    </button>
+                    <button className="action-btn">
+                      <FaComment /> {post.comments}
+                    </button>
+                  </div>
+                  <div className="post-timestamp">
+                    <FaClock /> {formatTimestamp(post.createdAt)}
+                  </div>
                 </div>
               </div>
             ))}
+            
+            {/* 로딩 인디케이터 */}
+            {isLoading && (
+              <div className="loading-indicator">
+                <div className="loading-spinner"></div>
+                게시글을 불러오는 중...
+              </div>
+            )}
+            
+            {/* 게시글 끝 표시 */}
+            {!hasMore && posts.length > 0 && (
+              <div className="end-of-posts">
+                모든 게시글을 불러왔습니다
+              </div>
+            )}
           </div>
         </div>
 
@@ -434,30 +473,30 @@ const TripTalk: React.FC = () => {
                   </div>
                   <div className="info-item">
                     <span className="info-label">날씨</span>
-                                         <div className="weather-condition">
-                       {weather.weatherIcon && weather.weatherIcon.trim() !== '' ? (
-                         weather.weatherIcon.startsWith('http') ? (
-                           <img 
-                             src={weather.weatherIcon} 
-                             alt="날씨 아이콘" 
-                             className="weather-icon"
-                             onError={(e) => {
-                               console.error('🌤️ [TripTalk] 아이콘 로드 실패:', weather.weatherIcon);
-                               const target = e.target as HTMLImageElement;
-                               target.style.display = 'none';
-                             }}
-                             onLoad={() => {
-                               console.log('🌤️ [TripTalk] 아이콘 로드 성공:', weather.weatherIcon);
-                             }}
-                           />
-                         ) : (
-                           <span className="weather-emoji">{weather.weatherIcon}</span>
-                         )
-                       ) : (
-                         <span className="weather-placeholder">🌤️</span>
-                       )}
-                       <span className="info-value">{weather.condition}</span>
-                     </div>
+                    <div className="weather-condition">
+                      {weather.weatherIcon && weather.weatherIcon.trim() !== '' ? (
+                        weather.weatherIcon.startsWith('http') ? (
+                          <img 
+                            src={weather.weatherIcon} 
+                            alt="날씨 아이콘" 
+                            className="weather-icon"
+                            onError={(e) => {
+                              console.error('🌤️ [TripTalk] 아이콘 로드 실패:', weather.weatherIcon);
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                            onLoad={() => {
+                              console.log('🌤️ [TripTalk] 아이콘 로드 성공:', weather.weatherIcon);
+                            }}
+                          />
+                        ) : (
+                          <span className="weather-emoji">{weather.weatherIcon}</span>
+                        )
+                      ) : (
+                        <span className="weather-placeholder">🌤️</span>
+                      )}
+                      <span className="info-value">{weather.condition}</span>
+                    </div>
                   </div>
                   <div className="info-item">
                     <span className="info-label">자외선 지수</span>
