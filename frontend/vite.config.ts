@@ -10,12 +10,12 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:80',
         changeOrigin: true,
-        secure: false,
+        secure: false
       },
       '/auth': {
         target: 'http://localhost:80',
         changeOrigin: true,
-        secure: false,
+        secure: false
       }
     }
   }

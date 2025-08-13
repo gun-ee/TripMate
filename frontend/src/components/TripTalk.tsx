@@ -1,33 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { FaHeart, FaComment, FaClock } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
+import { usePostContext, type Post } from '../contexts/PostContext';
 import axiosInstance from '../api/axios';
 import Header from './Header';
+import PostDetailModal from './PostDetailModal';
 import './TripTalk.css';
-
-interface Post {
-  id: number;
-  author: {
-    id: number;
-    username: string;
-    profileImg: string;
-    isTraveling: boolean;
-  };
-  location: string;
-  timestamp: string;
-  title: string;
-  content: string;
-  image?: string;
-  likes: number;
-  comments: number;
-  createdAt: Date; // 실제 생성 시간을 저장할 필드 추가
-}
 
 const TripTalk: React.FC = () => {
   const { isLoggedIn } = useAuth();
+  const { 
+    posts, 
+    setPosts, 
+    updatePostLike, 
+    updatePostLikeCount,
+    addPost 
+  } = usePostContext();
+  
   const [profileImg, setProfileImg] = useState<string>('');
   const [nickname, setNickname] = useState<string>('');
-  const [posts, setPosts] = useState<Post[]>([]);
   const [showOnlyTraveling, setShowOnlyTraveling] = useState<boolean>(false);
   const [newPost, setNewPost] = useState({
     title: '',
@@ -35,8 +26,12 @@ const TripTalk: React.FC = () => {
     image: null as File | null
   });
 
+  // 모달 관련 상태
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   // 무한스크롤링 관련 상태
-  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [currentPage, setCurrentPage] = useState<number>(0);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [postsPerPage] = useState<number>(10);
@@ -52,9 +47,6 @@ const TripTalk: React.FC = () => {
     uv: number;
   } | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
-
-
-
 
   // 날씨 정보 가져오기 함수 추가
   const fetchOsakaWeather = async () => {
@@ -124,44 +116,27 @@ const TripTalk: React.FC = () => {
     }
   };
 
-
-
   // 게시글 로드 함수 (무한스크롤링용)
-  const loadPosts = async (page: number = 1, append: boolean = false) => {
+  const loadPosts = async (page: number = 0, append: boolean = false) => {
     if (isLoading) return;
     
     setIsLoading(true);
     try {
-      // 실제 API 호출 시 사용할 코드
-      // const response = await axiosInstance.get(`/posts?page=${page}&size=${postsPerPage}`);
-      // const newPosts = response.data.content;
-      
-      // 임시로 더미 데이터 생성 (실제 DB 연동 시 제거)
-      const dummyPosts: Post[] = Array.from({ length: postsPerPage }, (_, index) => ({
-        id: (page - 1) * postsPerPage + index + 1,
-        author: {
-          id: 1,
-          username: 'hyeyoung',
-          profileImg: '/images/logo.png',
-          isTraveling: true
-        },
-        location: '오사카',
-        timestamp: '1시간전',
-        title: `게시글 제목 ${(page - 1) * postsPerPage + index + 1}`,
-        content: `게시글 내용 ${(page - 1) * postsPerPage + index + 1}입니다.`,
-        likes: Math.floor(Math.random() * 10),
-        comments: Math.floor(Math.random() * 5),
-        createdAt: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000)
-      }));
+      const response = await axiosInstance.get(`/posts?page=${page}&size=${postsPerPage}`);
+             const newPosts = response.data.content;
+       
+       // 이미지 URL 디버깅
+       newPosts.forEach(post => {
+         console.log(`📸 [TripTalk] 게시글 ${post.id} 이미지 URL:`, post.imageUrl);
+       });
+       
+       if (append) {
+         setPosts(prev => [...prev, ...newPosts]);
+       } else {
+         setPosts(newPosts);
+       }
 
-      if (append) {
-        setPosts(prev => [...prev, ...dummyPosts]);
-      } else {
-        setPosts(dummyPosts);
-      }
-
-      // 더미 데이터이므로 항상 다음 페이지가 있다고 가정 (실제로는 API 응답에 따라 결정)
-      setHasMore(dummyPosts.length === postsPerPage);
+      setHasMore(!response.data.last);
       setCurrentPage(page);
       
     } catch (error) {
@@ -183,13 +158,32 @@ const TripTalk: React.FC = () => {
 
   // 초기 게시글 로드
   useEffect(() => {
-    loadPosts(1, false);
+    loadPosts(0, false);
   }, []);
 
-  const handleLike = (postId: number) => {
-    setPosts(posts.map(post => 
-      post.id === postId ? { ...post, likes: post.likes + 1 } : post
-    ));
+  const handleLike = async (postId: number) => {
+    try {
+      const response = await axiosInstance.post(`/posts/${postId}/like`);
+      const { isLiked, likeCount } = response.data;
+      
+      // PostContext를 통해 상태 업데이트 (실제 백엔드 값 사용)
+      updatePostLikeCount(postId, likeCount, isLiked);
+      
+    } catch (error) {
+      console.error('좋아요 처리 실패:', error);
+    }
+  };
+
+  // 게시글 클릭 시 모달 열기
+  const handlePostClick = (post: Post) => {
+    setSelectedPost(post);
+    setIsModalOpen(true);
+  };
+
+  // 모달 닫기
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedPost(null);
   };
 
   const handleSubmitPost = async (e: React.FormEvent) => {
@@ -204,30 +198,31 @@ const TripTalk: React.FC = () => {
     }
 
     try {
-      // 실제 API 호출
-      // const response = await axiosInstance.post('/posts', formData);
-      console.log('게시글 작성:', formData);
-      
-      // 임시로 로컬 상태에 추가
-      const newPostObj: Post = {
-        id: Date.now(),
-        author: {
-          id: 1,
-          username: nickname || '사용자',
-          profileImg: profileImg || '/images/logo.png',
-          isTraveling: true
+      const response = await axiosInstance.post('/posts', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
         },
-        location: '현재 위치',
-        timestamp: '방금전',
-        title: newPost.title,
-        content: newPost.content,
-        likes: 0,
-        comments: 0,
-        createdAt: new Date()
-      };
+      });
       
-      setPosts([newPostObj, ...posts]);
+             // 새 게시글을 PostContext에 추가
+       const newPostData: Post = {
+         id: response.data.id,
+         title: response.data.title,
+         content: response.data.content,
+         imageUrl: response.data.imageUrl,
+         authorName: response.data.authorName,
+         authorProfileImg: response.data.authorProfileImg,
+         createdAt: new Date(response.data.createdAt),
+         likeCount: response.data.likeCount,
+         commentCount: response.data.commentCount,
+         isLikedByMe: response.data.isLikedByMe
+       };
+       
+       console.log('📸 [TripTalk] 새 게시글 이미지 URL:', response.data.imageUrl);
+      
+      addPost(newPostData);
       setNewPost({ title: '', content: '', image: null });
+      
     } catch (error) {
       console.error('게시글 작성 실패:', error);
     }
@@ -240,7 +235,7 @@ const TripTalk: React.FC = () => {
   };
 
   const filteredPosts = posts.filter(post => {
-    if (showOnlyTraveling && !post.author.isTraveling) return false;
+    if (showOnlyTraveling && !post.authorName.includes('여행중')) return false;
     return true;
   });
 
@@ -381,18 +376,29 @@ const TripTalk: React.FC = () => {
           {/* 게시글 목록 */}
           <div className="posts-container" onScroll={handleScroll}>
             {filteredPosts.map(post => (
-              <div key={post.id} className="post-card">
+              <div 
+                key={post.id} 
+                className="post-card"
+                onClick={() => handlePostClick(post)}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className="post-header">
-                  <img 
-                    src={post.author.profileImg} 
-                    alt="프로필" 
-                    className="author-avatar"
-                  />
+                                  <img 
+                  src={post.authorProfileImg ? `http://localhost:80${post.authorProfileImg}` : '/images/logo.png'} 
+                  alt="프로필" 
+                  className="author-avatar"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    if (target.src !== '/images/logo.png') {
+                      target.src = '/images/logo.png';
+                    }
+                  }}
+                />
                   <div className="author-info">
-                    <span className="author-name">{post.author.username}</span>
+                    <span className="author-name">{post.authorName}</span>
                     <div className="post-meta">
                       <span className="location">
-                        {post.location}
+                        오사카
                       </span>
                     </div>
                   </div>
@@ -402,21 +408,37 @@ const TripTalk: React.FC = () => {
                 <div className="post-content">
                   <h3 className="post-title">{post.title}</h3>
                   <p className="post-text">{post.content}</p>
-                  {post.image && (
-                    <img src={post.image} alt="게시글 이미지" className="post-image" />
-                  )}
+                                     {post.imageUrl ? (
+                     <img 
+                       src={post.imageUrl.startsWith('http') ? post.imageUrl : `http://localhost:80${post.imageUrl}`} 
+                       alt="게시글 이미지" 
+                       className="post-image"
+                       onError={(e) => {
+                         console.error('게시글 이미지 로드 실패:', post.imageUrl);
+                         const target = e.target as HTMLImageElement;
+                         target.style.display = 'none';
+                       }}
+                     />
+                   ) : (
+                     <div style={{ padding: '1rem', textAlign: 'center', color: '#666' }}>
+                       이미지 없음 (imageUrl: {JSON.stringify(post.imageUrl)})
+                     </div>
+                   )}
                 </div>
                 
                 <div className="post-footer">
                   <div className="post-actions-left">
                     <button 
                       className="action-btn"
-                      onClick={() => handleLike(post.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLike(post.id);
+                      }}
                     >
-                      <FaHeart /> {post.likes}
+                      <FaHeart style={{ color: post.isLikedByMe ? '#e41e3f' : 'inherit' }} /> {post.likeCount}
                     </button>
                     <button className="action-btn">
-                      <FaComment /> {post.comments}
+                      <FaComment /> {post.commentCount}
                     </button>
                   </div>
                   <div className="post-timestamp">
@@ -530,6 +552,13 @@ const TripTalk: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 게시글 상세 모달 */}
+      <PostDetailModal
+        post={selectedPost}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
     </>
   );
 };

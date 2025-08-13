@@ -23,6 +23,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Value("${profile.resource.location}")
     String profileResourceLocation;
 
+    @Value("${sns.resource.handler}")
+    String snsResourceHandler;
+
+    @Value("${sns.resource.location}")
+    String snsResourceLocation;
+
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
@@ -50,6 +56,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
         // 프로필 이미지 전용 핸들러
         registry.addResourceHandler(profileResourceHandler)
                 .addResourceLocations(profileResourceLocation);
+
+        // 게시글 첨부 이미지 핸들러 추가
+        registry.addResourceHandler(snsResourceHandler)
+                .addResourceLocations(snsResourceLocation);
 
     }
 

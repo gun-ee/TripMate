@@ -64,6 +64,7 @@ npm run dev
 - Spring Boot 3.x 버전 사용
 - Java 21 사용
 - DB 네이밍은 camelCase로 통일
+- 네이밍은 camelCase로 통일
 - Member.java 기준으로 네이밍 통일
 - 백엔드 포트: 80, 프론트엔드 포트: 5173
 
@@ -73,6 +74,7 @@ npm run dev
 - 향후 Docker와 Redis 추가 예정
 - 프론트엔드는 Vite로 빌드
 - 백엔드는 Maven으로 관리
+- 코드 구현시 프로젝트 전체 분석, axios 설정 파악
 
 ---
 *이 파일은 AI 어시스턴트가 프로젝트 컨텍스트를 유지하기 위해 사용됩니다.* 
