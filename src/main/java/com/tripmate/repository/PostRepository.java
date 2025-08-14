@@ -27,4 +27,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     // 좋아요 수로 정렬
     @Query("SELECT p FROM Post p WHERE p.status = :status ORDER BY SIZE(p.likes) DESC, p.createdAt DESC")
     Page<Post> findByStatusOrderByLikesDesc(PostStatus status, Pageable pageable);
+
+    // 최근 1일간 좋아요가 많은 순으로 5개 조회
+    @Query("SELECT p FROM Post p WHERE p.status = :status AND p.createdAt >= :oneDayAgo ORDER BY SIZE(p.likes) DESC, p.createdAt DESC")
+    List<Post> findTrendingPosts(@Param("status") PostStatus status, @Param("oneDayAgo") java.time.LocalDateTime oneDayAgo);
 }

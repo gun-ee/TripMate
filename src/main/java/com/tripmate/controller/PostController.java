@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -127,5 +128,13 @@ public class PostController {
         LikeResponse response = postService.toggleLike(id, userDetails.getMemberId());
         
         return ResponseEntity.ok(response);
+    }
+
+    // 인기 게시글 조회 (최근 1일간 좋아요 많은 순)
+    @GetMapping("/trending")
+    public ResponseEntity<List<PostListResponse>> getTrendingPosts() {
+        log.info("인기 게시글 조회 요청");
+        List<PostListResponse> trendingPosts = postService.getTrendingPosts();
+        return ResponseEntity.ok(trendingPosts);
     }
 }

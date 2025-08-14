@@ -142,6 +142,18 @@ public class PostService {
                 .isLiked(isLiked)
                 .build();
     }
+
+    // 인기 게시글 조회 (최근 1일간 좋아요 많은 순)
+    public List<PostListResponse> getTrendingPosts() {
+        // 최근 1일간의 게시글 중 좋아요가 많은 순으로 5개 조회
+        java.time.LocalDateTime oneDayAgo = java.time.LocalDateTime.now().minusDays(1);
+        List<Post> trendingPosts = postRepository.findTrendingPosts(PostStatus.ACTIVE, oneDayAgo);
+        
+        return trendingPosts.stream()
+                .limit(5) // 최대 5개까지만
+                .map(post -> convertToPostListResponse(post, null)) // 로그인하지 않은 사용자도 볼 수 있도록
+                .collect(Collectors.toList());
+    }
     
     // 이미지 저장 (임시 구현)
     private String saveImage(MultipartFile image) throws IOException {

@@ -840,6 +840,21 @@
   flex: 1;
 }
 
+.trending-loading {
+  text-align: center;
+  padding: 20px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.trending-empty {
+  text-align: center;
+  padding: 20px;
+  color: #6b7280;
+  font-size: 14px;
+  font-style: italic;
+}
+
 /* 실시간 정보 */
 .live-info {
   display: flex;

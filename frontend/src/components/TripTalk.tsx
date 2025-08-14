@@ -50,6 +50,10 @@ const TripTalk: React.FC = () => {
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [isAutoSlide, setIsAutoSlide] = useState(true);
 
+  // 인기 게시글 상태 추가
+  const [trendingPosts, setTrendingPosts] = useState<Post[]>([]);
+  const [trendingLoading, setTrendingLoading] = useState(false);
+
   // 4개 도시의 날씨 정보 가져오기 함수 수정
   const fetchAllCitiesWeather = async () => {
     setWeatherLoading(true);
@@ -65,6 +69,20 @@ const TripTalk: React.FC = () => {
       console.error('🌤️ [TripTalk] 날씨 정보 가져오기 실패:', error);
     } finally {
       setWeatherLoading(false);
+    }
+  };
+
+  // 인기 게시글 가져오기 함수
+  const fetchTrendingPosts = async () => {
+    setTrendingLoading(true);
+    try {
+      const response = await axiosInstance.get('/posts/trending');
+      setTrendingPosts(response.data);
+      console.log('🔥 [TripTalk] 인기 게시글:', response.data);
+    } catch (error) {
+      console.error('🔥 [TripTalk] 인기 게시글 가져오기 실패:', error);
+    } finally {
+      setTrendingLoading(false);
     }
   };
 
@@ -112,11 +130,15 @@ const TripTalk: React.FC = () => {
     }
   }, [isLoggedIn]);
 
-  // 날씨 정보 가져오기 useEffect 수정
+  // 날씨 정보와 인기 게시글 가져오기 useEffect 수정
   useEffect(() => {
     fetchAllCitiesWeather();
+    fetchTrendingPosts();
     // 30분마다 업데이트
-    const interval = setInterval(fetchAllCitiesWeather, 30 * 60 * 1000);
+    const interval = setInterval(() => {
+      fetchAllCitiesWeather();
+      fetchTrendingPosts();
+    }, 30 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -298,18 +320,23 @@ const TripTalk: React.FC = () => {
           <div className="sidebar-card">
             <h3>인기 게시글</h3>
             <div className="trending-posts">
-              <div className="trending-post">
-                <span className="trending-number">1</span>
-                <span className="trending-title">오사카 맛집 추천</span>
-              </div>
-              <div className="trending-post">
-                <span className="trending-number">2</span>
-                <span className="trending-title">도쿄 날씨 정보</span>
-              </div>
-              <div className="trending-post">
-                <span className="trending-number">3</span>
-                <span className="trending-title">교토 동행 구함</span>
-              </div>
+              {trendingLoading ? (
+                <div className="trending-loading">인기 게시글 로딩 중...</div>
+              ) : trendingPosts.length > 0 ? (
+                trendingPosts.map((post, index) => (
+                  <div 
+                    key={post.id} 
+                    className="trending-post"
+                    onClick={() => handlePostClick(post)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <span className="trending-number">{index + 1}</span>
+                    <span className="trending-title">{post.title}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="trending-empty">아직 인기 게시글이 없습니다</div>
+              )}
             </div>
           </div>
         </div>
@@ -448,7 +475,7 @@ const TripTalk: React.FC = () => {
                 <div className="post-content">
                   <h3 className="post-title">{post.title}</h3>
                   <p className="post-text">{post.content}</p>
-                                     {post.imageUrl ? (
+                                     {post.imageUrl && (
                      <img 
                        src={post.imageUrl.startsWith('http') ? post.imageUrl : `http://localhost:80${post.imageUrl}`} 
                        alt="게시글 이미지" 
@@ -459,10 +486,6 @@ const TripTalk: React.FC = () => {
                          target.style.display = 'none';
                        }}
                      />
-                   ) : (
-                     <div style={{ padding: '1rem', textAlign: 'center', color: '#666' }}>
-                       이미지 없음 (imageUrl: {JSON.stringify(post.imageUrl)})
-                     </div>
                    )}
                 </div>
                 
