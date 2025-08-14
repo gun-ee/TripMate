@@ -62,4 +62,33 @@ public class Post extends BaseTimeEntity {
         return likes != null && likes.stream()
                 .anyMatch(like -> like.getMember().getId().equals(memberId));
     }
+    
+    // 댓글 수 증가
+    public void incrementCommentCount() {
+        // 이 메서드는 JPA가 자동으로 comments.size()를 계산하므로
+        // 실제로는 별도 업데이트가 필요하지 않음
+    }
+    
+    // 댓글 수 감소
+    public void decrementCommentCount() {
+        // 이 메서드는 JPA가 자동으로 comments.size()를 계산하므로
+        // 실제로는 별도 업데이트가 필요하지 않음
+    }
+    
+    // 댓글 추가
+    public void addComment(Comment comment) {
+        if (comments == null) {
+            comments = new ArrayList<>();
+        }
+        comments.add(comment);
+        comment.setPost(this);
+    }
+    
+    // 댓글 제거
+    public void removeComment(Comment comment) {
+        if (comments != null) {
+            comments.remove(comment);
+            comment.setPost(null);
+        }
+    }
 }

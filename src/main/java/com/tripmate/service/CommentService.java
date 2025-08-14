@@ -31,10 +31,12 @@ public class CommentService {
                 .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다."));
         
         Comment comment = Comment.builder()
-                .post(post)
-                .author(author)
                 .content(request.getContent())
                 .build();
+        
+        // Post에 댓글 추가
+        post.addComment(comment);
+        comment.setAuthor(author);
         
         Comment savedComment = commentRepository.save(comment);
         
@@ -75,6 +77,11 @@ public class CommentService {
             throw new RuntimeException("댓글을 삭제할 권한이 없습니다.");
         }
         
+        // Post에서 댓글 제거
+        Post post = comment.getPost();
+        post.removeComment(comment);
+        
+        // 댓글 삭제
         commentRepository.delete(comment);
     }
     

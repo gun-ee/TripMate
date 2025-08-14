@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaHeart, FaComment, FaClock } from 'react-icons/fa';
+import { FaHeart, FaComment, FaClock, FaChevronLeft, FaChevronRight, FaPause, FaPlay } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { usePostContext, type Post } from '../contexts/PostContext';
 import axiosInstance from '../api/axios';
@@ -12,7 +12,6 @@ const TripTalk: React.FC = () => {
   const { 
     posts, 
     setPosts, 
-    updatePostLike, 
     updatePostLikeCount,
     addPost 
   } = usePostContext();
@@ -36,8 +35,9 @@ const TripTalk: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [postsPerPage] = useState<number>(10);
 
-  // 날씨 관련 상태 추가
-  const [weather, setWeather] = useState<{
+  // 날씨 관련 상태 수정 - 4개 도시 지원
+  const [weatherList, setWeatherList] = useState<Array<{
+    city: string;
     tempC: number;
     feelslikeC: number;
     humidity: number;
@@ -45,23 +45,50 @@ const TripTalk: React.FC = () => {
     weatherIcon: string;
     condition: string;
     uv: number;
-  } | null>(null);
+  }>>([]);
+  const [currentWeatherIndex, setCurrentWeatherIndex] = useState(0);
   const [weatherLoading, setWeatherLoading] = useState(false);
+  const [isAutoSlide, setIsAutoSlide] = useState(true);
 
-  // 날씨 정보 가져오기 함수 추가
-  const fetchOsakaWeather = async () => {
+  // 4개 도시의 날씨 정보 가져오기 함수 수정
+  const fetchAllCitiesWeather = async () => {
     setWeatherLoading(true);
     try {
-      const response = await axiosInstance.get('/weather/osaka');
-      setWeather(response.data);
-      console.log('🌤️ [TripTalk] 오사카 날씨 정보:', response.data);
-      console.log('🌤️ [TripTalk] 날씨 아이콘 URL:', response.data.weatherIcon);
+      const response = await axiosInstance.get('/weather/cities');
+      const weatherData = response.data.map((weather: any, index: number) => ({
+        city: ['오사카', '후쿠오카', '도쿄', '삿포로'][index],
+        ...weather
+      }));
+      setWeatherList(weatherData);
+      console.log('🌤️ [TripTalk] 4개 도시 날씨 정보:', weatherData);
     } catch (error) {
       console.error('🌤️ [TripTalk] 날씨 정보 가져오기 실패:', error);
     } finally {
       setWeatherLoading(false);
     }
   };
+
+  // 자동 슬라이드 함수
+  const nextWeather = () => {
+    setCurrentWeatherIndex((prev) => (prev + 1) % weatherList.length);
+  };
+
+  const prevWeather = () => {
+    setCurrentWeatherIndex((prev) => (prev - 1 + weatherList.length) % weatherList.length);
+  };
+
+  // 자동 슬라이드 제어
+  const toggleAutoSlide = () => {
+    setIsAutoSlide(!isAutoSlide);
+  };
+
+  // 자동 슬라이드 useEffect
+  useEffect(() => {
+    if (isAutoSlide && weatherList.length > 0) {
+      const interval = setInterval(nextWeather, 5000); // 5초마다 자동 슬라이드
+      return () => clearInterval(interval);
+    }
+  }, [isAutoSlide, weatherList.length]);
 
   // 사용자 정보 가져오기
   useEffect(() => {
@@ -85,18 +112,26 @@ const TripTalk: React.FC = () => {
     }
   }, [isLoggedIn]);
 
-  // 날씨 정보 가져오기 useEffect 추가
+  // 날씨 정보 가져오기 useEffect 수정
   useEffect(() => {
-    fetchOsakaWeather();
+    fetchAllCitiesWeather();
     // 30분마다 업데이트
-    const interval = setInterval(fetchOsakaWeather, 30 * 60 * 1000);
+    const interval = setInterval(fetchAllCitiesWeather, 30 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // 시간 표시 함수 추가
-  const formatTimestamp = (createdAt: Date): string => {
+  // 시간 표시 함수 추가 (안전장치 포함)
+  const formatTimestamp = (createdAt: Date | string): string => {
+    // createdAt이 Date 객체가 아닌 경우 Date 객체로 변환
+    const date = createdAt instanceof Date ? createdAt : new Date(createdAt);
+    
+    // 유효하지 않은 날짜인 경우 기본값 반환
+    if (isNaN(date.getTime())) {
+      return '방금 전';
+    }
+    
     const now = new Date();
-    const diffInMs = now.getTime() - createdAt.getTime();
+    const diffInMs = now.getTime() - date.getTime();
     const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
     const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
@@ -108,7 +143,12 @@ const TripTalk: React.FC = () => {
     } else if (diffInDays < 7) {
       return `${diffInDays}일전`;
     } else {
-      return createdAt.toLocaleDateString('ko-KR', {
+      // createdAt이 Date 객체인지 확인하고 안전하게 처리
+      const date = createdAt instanceof Date ? createdAt : new Date(createdAt);
+      if (isNaN(date.getTime())) {
+        return '방금 전';
+      }
+      return date.toLocaleDateString('ko-KR', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit'
@@ -126,7 +166,7 @@ const TripTalk: React.FC = () => {
              const newPosts = response.data.content;
        
        // 이미지 URL 디버깅
-       newPosts.forEach(post => {
+       newPosts.forEach((post: Post) => {
          console.log(`📸 [TripTalk] 게시글 ${post.id} 이미지 URL:`, post.imageUrl);
        });
        
@@ -467,62 +507,66 @@ const TripTalk: React.FC = () => {
 
         {/* 우측 사이드바 */}
         <div className="triptalk-sidebar-right">
-          {/* 실시간 정보 - 기존 코드를 교체 */}
+          {/* 실시간 정보 - 4개 도시 자동 슬라이드 */}
           <div className="sidebar-card">
-            <h3>오사카 실시간 정보</h3>
-            <div className="live-info">
+            <h3>{weatherList.length > 0 ? `${weatherList[currentWeatherIndex].city} 실시간 정보` : '실시간 정보'}</h3>
+            <div 
+              className="live-info"
+              onMouseEnter={() => setIsAutoSlide(false)}
+              onMouseLeave={() => setIsAutoSlide(true)}
+            >
               {weatherLoading ? (
                 <div className="info-item">
                   <span className="info-label">날씨 정보 로딩 중...</span>
                 </div>
-              ) : weather ? (
+              ) : weatherList.length > 0 ? (
                 <>
                   <div className="info-item">
                     <span className="info-label">현재 온도</span>
-                    <span className="info-value">{weather.tempC}°C</span>
+                    <span className="info-value">{weatherList[currentWeatherIndex].tempC}°C</span>
                   </div>
                   <div className="info-item">
                     <span className="info-label">체감 온도</span>
-                    <span className="info-value">{weather.feelslikeC}°C</span>
+                    <span className="info-value">{weatherList[currentWeatherIndex].feelslikeC}°C</span>
                   </div>
                   <div className="info-item">
                     <span className="info-label">습도</span>
-                    <span className="info-value">{weather.humidity}%</span>
+                    <span className="info-value">{weatherList[currentWeatherIndex].humidity}%</span>
                   </div>
                   <div className="info-item">
                     <span className="info-label">바람</span>
-                    <span className="info-value">{weather.windKph} km/h</span>
+                    <span className="info-value">{weatherList[currentWeatherIndex].windKph} km/h</span>
                   </div>
                   <div className="info-item">
                     <span className="info-label">날씨</span>
                     <div className="weather-condition">
-                      {weather.weatherIcon && weather.weatherIcon.trim() !== '' ? (
-                        weather.weatherIcon.startsWith('http') ? (
+                      {weatherList[currentWeatherIndex].weatherIcon && weatherList[currentWeatherIndex].weatherIcon.trim() !== '' ? (
+                        weatherList[currentWeatherIndex].weatherIcon.startsWith('http') ? (
                           <img 
-                            src={weather.weatherIcon} 
+                            src={weatherList[currentWeatherIndex].weatherIcon} 
                             alt="날씨 아이콘" 
                             className="weather-icon"
                             onError={(e) => {
-                              console.error('🌤️ [TripTalk] 아이콘 로드 실패:', weather.weatherIcon);
+                              console.error('🌤️ [TripTalk] 아이콘 로드 실패:', weatherList[currentWeatherIndex].weatherIcon);
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';
                             }}
                             onLoad={() => {
-                              console.log('🌤️ [TripTalk] 아이콘 로드 성공:', weather.weatherIcon);
+                              console.log('🌤️ [TripTalk] 아이콘 로드 성공:', weatherList[currentWeatherIndex].weatherIcon);
                             }}
                           />
                         ) : (
-                          <span className="weather-emoji">{weather.weatherIcon}</span>
+                          <span className="weather-emoji">{weatherList[currentWeatherIndex].weatherIcon}</span>
                         )
                       ) : (
                         <span className="weather-placeholder">🌤️</span>
                       )}
-                      <span className="info-value">{weather.condition}</span>
+                      <span className="info-value">{weatherList[currentWeatherIndex].condition}</span>
                     </div>
                   </div>
                   <div className="info-item">
                     <span className="info-label">자외선 지수</span>
-                    <span className="info-value">{weather.uv}</span>
+                    <span className="info-value">{weatherList[currentWeatherIndex].uv}</span>
                   </div>
                 </>
               ) : (
@@ -530,7 +574,20 @@ const TripTalk: React.FC = () => {
                   <span className="info-label">날씨 정보를 불러올 수 없습니다</span>
                 </div>
               )}
-            </div>
+                          </div>
+             
+             {/* 날씨 제어 버튼 */}
+             <div className="weather-controls">
+               <button onClick={prevWeather} className="control-btn">
+                 <FaChevronLeft />
+               </button>
+               <button onClick={toggleAutoSlide} className="control-btn">
+                 {isAutoSlide ? <FaPause /> : <FaPlay />}
+               </button>
+               <button onClick={nextWeather} className="control-btn">
+                 <FaChevronRight />
+               </button>
+             </div>
           </div>
           
           <div className="sidebar-card">

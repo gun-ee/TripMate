@@ -40,4 +40,17 @@ public class Comment extends BaseTimeEntity {
     
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> replies = new ArrayList<>();
+    
+    // Post와의 양방향 관계 관리
+    public void setPost(Post post) {
+        this.post = post;
+        if (post != null && !post.getComments().contains(this)) {
+            post.getComments().add(this);
+        }
+    }
+    
+    // Member와의 관계 설정
+    public void setAuthor(Member author) {
+        this.author = author;
+    }
 }

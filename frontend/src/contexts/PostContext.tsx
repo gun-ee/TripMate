@@ -42,11 +42,18 @@ interface PostProviderProps {
 export const PostProvider: React.FC<PostProviderProps> = ({ children }) => {
   const [posts, setPosts] = useState<Post[]>([]);
 
-  // 게시글 업데이트
+  // 게시글 업데이트 (createdAt 필드 보호)
   const updatePost = (postId: number, updates: Partial<Post>) => {
     setPosts(prevPosts =>
       prevPosts.map(post =>
-        post.id === postId ? { ...post, ...updates } : post
+        post.id === postId 
+          ? { 
+              ...post, 
+              ...updates,
+              // createdAt 필드는 절대 덮어쓰지 않음
+              createdAt: post.createdAt 
+            } 
+          : post
       )
     );
   };
@@ -81,12 +88,17 @@ export const PostProvider: React.FC<PostProviderProps> = ({ children }) => {
     );
   };
 
-  // 댓글 수 업데이트
+  // 댓글 수 업데이트 (createdAt 필드 보호)
   const updatePostCommentCount = (postId: number, increment: number) => {
     setPosts(prevPosts =>
       prevPosts.map(post =>
         post.id === postId
-          ? { ...post, commentCount: post.commentCount + increment }
+          ? { 
+              ...post, 
+              commentCount: post.commentCount + increment,
+              // createdAt 필드는 절대 덮어쓰지 않음
+              createdAt: post.createdAt 
+            }
           : post
       )
     );

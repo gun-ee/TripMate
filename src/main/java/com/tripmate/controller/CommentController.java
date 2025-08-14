@@ -4,6 +4,7 @@ import com.tripmate.dto.CommentRequest;
 import com.tripmate.dto.CommentResponse;
 import com.tripmate.entity.Member;
 import com.tripmate.service.CommentService;
+import com.tripmate.config.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -33,12 +34,13 @@ public class CommentController {
     public ResponseEntity<CommentResponse> createComment(
             @PathVariable Long postId,
             @Valid @RequestBody CommentRequest request,
-            @AuthenticationPrincipal Member member) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         
-        if (member == null) {
+        if (userDetails == null) {
             return ResponseEntity.status(401).build();
         }
         
+        Member member = userDetails.getMember();
         log.info("댓글 작성 요청: 게시글 {}, 사용자 {}", postId, member.getId());
         
         CommentResponse response = commentService.createComment(postId, request, member);
@@ -51,12 +53,13 @@ public class CommentController {
             @PathVariable Long postId,
             @PathVariable Long commentId,
             @Valid @RequestBody CommentRequest request,
-            @AuthenticationPrincipal Member member) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         
-        if (member == null) {
+        if (userDetails == null) {
             return ResponseEntity.status(401).build();
         }
         
+        Member member = userDetails.getMember();
         log.info("댓글 수정 요청: 댓글 {}, 사용자 {}", commentId, member.getId());
         
         CommentResponse response = commentService.updateComment(commentId, request, member);
@@ -68,12 +71,13 @@ public class CommentController {
     public ResponseEntity<Void> deleteComment(
             @PathVariable Long postId,
             @PathVariable Long commentId,
-            @AuthenticationPrincipal Member member) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         
-        if (member == null) {
+        if (userDetails == null) {
             return ResponseEntity.status(401).build();
         }
         
+        Member member = userDetails.getMember();
         log.info("댓글 삭제 요청: 댓글 {}, 사용자 {}", commentId, member.getId());
         
         commentService.deleteComment(commentId, member);

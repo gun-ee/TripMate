@@ -30,6 +30,7 @@ const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, isOpen, onClose
   const [editContent, setEditContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasEdited, setHasEdited] = useState(false);
+  const [localCommentCount, setLocalCommentCount] = useState(0);
   
   // PostContext에서 최신 게시글 정보 가져오기
   const currentPost = posts.find(p => p.id === post?.id) || post;
@@ -45,6 +46,7 @@ const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, isOpen, onClose
       fetchComments();
       setEditTitle(currentPost.title);
       setEditContent(currentPost.content);
+      setLocalCommentCount(currentPost.commentCount);
     }
   }, [currentPost, isOpen]);
 
@@ -80,19 +82,32 @@ const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, isOpen, onClose
     
     setIsSubmitting(true);
     try {
-      await axiosInstance.post(`/posts/${currentPost.id}/comments`, {
+      const response = await axiosInstance.post(`/posts/${currentPost.id}/comments`, {
         content: newComment
       });
+      
+      console.log('댓글 작성 성공:', response.data);
       
       // 댓글 목록 새로고침
       await fetchComments();
       
-      // PostContext를 통해 TripTalk 페이지 댓글 수 업데이트
+      // 댓글 목록 새로고침으로 댓글 수 반영
+      await fetchComments();
+      
+      // 로컬 댓글 수 업데이트
+      setLocalCommentCount(prev => prev + 1);
+      
+      // PostContext 댓글 수 업데이트 (createdAt 보호됨)
       updatePostCommentCount(currentPost.id, 1);
+      console.log('댓글 작성 완료 - PostContext 댓글 수 업데이트');
       
       setNewComment('');
     } catch (error) {
       console.error('댓글 작성 실패:', error);
+      // 에러 상세 정보 출력
+      if (error instanceof Error) {
+        console.error('에러 메시지:', error.message);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -221,7 +236,6 @@ const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, isOpen, onClose
               </form>
             ) : (
               <div className="post-content">
-                                 <h3 className="post-title">{currentPost.title}</h3>
                  <p className="post-text">{currentPost.content}</p>
                  {currentPost.imageUrl && (
                    <img 
@@ -251,9 +265,9 @@ const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, isOpen, onClose
             </div>
           </div>
 
-          {/* 댓글 섹션 */}
-          <div className="comments-section">
-                         <h3>댓글 ({currentPost.commentCount})</h3>
+                     {/* 댓글 섹션 */}
+           <div className="comments-section">
+                          <h3>댓글 ({localCommentCount})</h3>
             
             {isLoggedIn && (
               <form onSubmit={handleCommentSubmit} className="comment-form">
@@ -273,30 +287,65 @@ const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, isOpen, onClose
               </form>
             )}
 
-            <div className="comments-list">
-              {comments.map(comment => (
-                <div key={comment.id} className="comment-item">
-                  <div className="comment-header">
-                    <img 
-                      src={comment.authorProfileImg ? `http://localhost:80${comment.authorProfileImg}` : '/images/logo.png'} 
-                      alt="프로필" 
-                      className="comment-avatar"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        if (target.src !== '/images/logo.png') {
-                          target.src = '/images/logo.png';
-                        }
-                      }}
-                    />
-                    <span className="comment-author">{comment.authorName}</span>
-                    <span className="comment-date">
-                      {new Date(comment.createdAt).toLocaleDateString('ko-KR')}
-                    </span>
-                  </div>
-                  <p className="comment-content">{comment.content}</p>
-                </div>
-              ))}
-            </div>
+                         <div className="comments-list">
+               {comments.map(comment => (
+                 <div key={comment.id} className="comment-item">
+                   <div className="comment-header">
+                     <img 
+                       src={comment.authorProfileImg ? `http://localhost:80${comment.authorProfileImg}` : '/images/logo.png'} 
+                       alt="프로필" 
+                       className="comment-avatar"
+                       onError={(e) => {
+                         const target = e.target as HTMLImageElement;
+                         if (target.src !== '/images/logo.png') {
+                           target.src = '/images/logo.png';
+                         }
+                       }}
+                     />
+                     <span className="comment-author">{comment.authorName}</span>
+                     <span className="comment-date">
+                       {new Date(comment.createdAt).toLocaleDateString('ko-KR')}
+                     </span>
+                     {/* 댓글 작성자만 삭제 가능 */}
+                     {isLoggedIn && nickname === comment.authorName && (
+                       <button 
+                         className="comment-delete-btn"
+                         onClick={async () => {
+                           if (confirm('댓글을 삭제하시겠습니까?')) {
+                             try {
+                               await axiosInstance.delete(`/posts/${currentPost.id}/comments/${comment.id}`);
+                               await fetchComments();
+                                                               // 댓글 목록 새로고침으로 댓글 수 반영
+                                await fetchComments();
+                                
+                                // 로컬 댓글 수 업데이트
+                                setLocalCommentCount(prev => prev - 1);
+                                
+                                // PostContext 댓글 수 업데이트 (createdAt 보호됨)
+                                updatePostCommentCount(currentPost.id, -1);
+                                console.log('댓글 삭제 완료 - PostContext 댓글 수 업데이트');
+                             } catch (error) {
+                               console.error('댓글 삭제 실패:', error);
+                             }
+                           }
+                         }}
+                         style={{ 
+                           background: 'none', 
+                           border: 'none', 
+                           color: '#ff6b6b', 
+                           cursor: 'pointer',
+                           fontSize: '0.8rem',
+                           marginLeft: 'auto'
+                         }}
+                       >
+                         삭제
+                       </button>
+                     )}
+                   </div>
+                   <p className="comment-content">{comment.content}</p>
+                 </div>
+               ))}
+             </div>
           </div>
         </div>
       </div>
