@@ -147,7 +147,7 @@ function MemberSocialExtra() {
               id="phone"
               name="phone"
               required
-              placeholder="연락처를 입력하세요 (예: 010-1234-5678)"
+              placeholder="(예: 010-1234-5678)"
               value={phone}
               onChange={handlePhoneChange}
             />

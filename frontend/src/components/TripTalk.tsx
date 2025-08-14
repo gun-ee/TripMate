@@ -9,13 +9,13 @@ import './TripTalk.css';
 
 const TripTalk: React.FC = () => {
   const { isLoggedIn } = useAuth();
-  const { 
-    posts, 
-    setPosts, 
+  const {
+    posts,
+    setPosts,
     updatePostLikeCount,
-    addPost 
+    addPost
   } = usePostContext();
-  
+
   const [profileImg, setProfileImg] = useState<string>('');
   const [nickname, setNickname] = useState<string>('');
   const [showOnlyTraveling, setShowOnlyTraveling] = useState<boolean>(false);
@@ -95,6 +95,34 @@ const TripTalk: React.FC = () => {
     setCurrentWeatherIndex((prev) => (prev - 1 + weatherList.length) % weatherList.length);
   };
 
+  // 슬라이드 방향 상태 추가
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('right');
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  // 애니메이션과 함께 슬라이드 변경
+  const changeWeatherWithAnimation = (direction: 'left' | 'right') => {
+    if (isAnimating) return;
+
+    console.log(`🎬 [TripTalk] 슬라이드 애니메이션 시작: ${direction} 방향`);
+    setIsAnimating(true);
+    setSlideDirection(direction);
+
+    // 애니메이션 완료 후 인덱스 변경
+    setTimeout(() => {
+      if (direction === 'right') {
+        nextWeather(); // 다음 도시로 이동
+      } else {
+        prevWeather(); // 이전 도시로 이동
+      }
+
+      // 애니메이션 상태 정리
+      setTimeout(() => {
+        setIsAnimating(false);
+        console.log(`🎬 [TripTalk] 슬라이드 애니메이션 완료`);
+      }, 100);
+    }, 600);
+  };
+
   // 자동 슬라이드 제어
   const toggleAutoSlide = () => {
     setIsAutoSlide(!isAutoSlide);
@@ -103,7 +131,9 @@ const TripTalk: React.FC = () => {
   // 자동 슬라이드 useEffect
   useEffect(() => {
     if (isAutoSlide && weatherList.length > 0) {
-      const interval = setInterval(nextWeather, 5000); // 5초마다 자동 슬라이드
+      const interval = setInterval(() => {
+        changeWeatherWithAnimation('right');
+      }, 5000); // 5초마다 자동 슬라이드
       return () => clearInterval(interval);
     }
   }, [isAutoSlide, weatherList.length]);
@@ -124,7 +154,7 @@ const TripTalk: React.FC = () => {
         console.error('🔄 [TripTalk] 사용자 정보 가져오기 실패:', error);
       }
     };
-    
+
     if (isLoggedIn) {
       fetchUserInfo();
     }
@@ -146,12 +176,12 @@ const TripTalk: React.FC = () => {
   const formatTimestamp = (createdAt: Date | string): string => {
     // createdAt이 Date 객체가 아닌 경우 Date 객체로 변환
     const date = createdAt instanceof Date ? createdAt : new Date(createdAt);
-    
+
     // 유효하지 않은 날짜인 경우 기본값 반환
     if (isNaN(date.getTime())) {
       return '방금 전';
     }
-    
+
     const now = new Date();
     const diffInMs = now.getTime() - date.getTime();
     const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
@@ -181,17 +211,17 @@ const TripTalk: React.FC = () => {
   // 게시글 로드 함수 (무한스크롤링용)
   const loadPosts = async (page: number = 0, append: boolean = false) => {
     if (isLoading) return;
-    
+
     setIsLoading(true);
     try {
       const response = await axiosInstance.get(`/posts?page=${page}&size=${postsPerPage}`);
              const newPosts = response.data.content;
-       
+
        // 이미지 URL 디버깅
        newPosts.forEach((post: Post) => {
          console.log(`📸 [TripTalk] 게시글 ${post.id} 이미지 URL:`, post.imageUrl);
        });
-       
+
        if (append) {
          setPosts(prev => [...prev, ...newPosts]);
        } else {
@@ -200,7 +230,7 @@ const TripTalk: React.FC = () => {
 
       setHasMore(!response.data.last);
       setCurrentPage(page);
-      
+
     } catch (error) {
       console.error('게시글 로드 실패:', error);
     } finally {
@@ -211,7 +241,7 @@ const TripTalk: React.FC = () => {
   // 스크롤 이벤트 핸들러
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    
+
     // 스크롤이 하단에 도달했을 때 다음 페이지 로드
     if (scrollTop + clientHeight >= scrollHeight - 100 && hasMore && !isLoading) {
       loadPosts(currentPage + 1, true);
@@ -227,10 +257,10 @@ const TripTalk: React.FC = () => {
     try {
       const response = await axiosInstance.post(`/posts/${postId}/like`);
       const { isLiked, likeCount } = response.data;
-      
+
       // PostContext를 통해 상태 업데이트 (실제 백엔드 값 사용)
       updatePostLikeCount(postId, likeCount, isLiked);
-      
+
     } catch (error) {
       console.error('좋아요 처리 실패:', error);
     }
@@ -265,7 +295,7 @@ const TripTalk: React.FC = () => {
           'Content-Type': 'multipart/form-data',
         },
       });
-      
+
              // 새 게시글을 PostContext에 추가
        const newPostData: Post = {
          id: response.data.id,
@@ -279,12 +309,12 @@ const TripTalk: React.FC = () => {
          commentCount: response.data.commentCount,
          isLikedByMe: response.data.isLikedByMe
        };
-       
+
        console.log('📸 [TripTalk] 새 게시글 이미지 URL:', response.data.imageUrl);
-      
+
       addPost(newPostData);
       setNewPost({ title: '', content: '', image: null });
-      
+
     } catch (error) {
       console.error('게시글 작성 실패:', error);
     }
@@ -308,15 +338,15 @@ const TripTalk: React.FC = () => {
         {/* 좌측 사이드바 */}
         <div className="triptalk-sidebar-left">
           <div className="sidebar-card">
-            <h3>빠른 필터</h3>
+            <h3>여행지</h3>
             <div className="quick-filters">
-              <button className="quick-filter-btn">여행중인 사람</button>
-              <button className="quick-filter-btn">동행 구함</button>
-              <button className="quick-filter-btn">맛집 정보</button>
-              <button className="quick-filter-btn">날씨 정보</button>
+              <button className="quick-filter-btn">대한민국</button>
+              <button className="quick-filter-btn">동남아시아</button>
+              <button className="quick-filter-btn">일본</button>
+              <button className="quick-filter-btn">유럽</button>
             </div>
           </div>
-          
+
           <div className="sidebar-card">
             <h3>인기 게시글</h3>
             <div className="trending-posts">
@@ -324,8 +354,8 @@ const TripTalk: React.FC = () => {
                 <div className="trending-loading">인기 게시글 로딩 중...</div>
               ) : trendingPosts.length > 0 ? (
                 trendingPosts.map((post, index) => (
-                  <div 
-                    key={post.id} 
+                  <div
+                    key={post.id}
                     className="trending-post"
                     onClick={() => handlePostClick(post)}
                     style={{ cursor: 'pointer' }}
@@ -345,7 +375,7 @@ const TripTalk: React.FC = () => {
         <div className="triptalk-main">
           {/* 헤더 */}
           <div className="triptalk-header">
-            <h1>일본 전체</h1>
+            <h1>일본</h1>
             <div className="triptalk-stats">
               <div className="stat-item">
                 <span className="stat-label">여행 준비중</span>
@@ -366,14 +396,14 @@ const TripTalk: React.FC = () => {
             <select className="filter-select">
               <option>여행시기</option>
             </select>
-            
+
             <select className="filter-select">
               <option>주제</option>
             </select>
 
             <label className="traveling-only">
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 checked={showOnlyTraveling}
                 onChange={(e) => setShowOnlyTraveling(e.target.checked)}
               />
@@ -385,9 +415,9 @@ const TripTalk: React.FC = () => {
           {isLoggedIn && (
             <div className="create-post">
               <div className="post-header">
-                <img 
-                  src={profileImg ? `http://localhost:80${profileImg}` : '/images/logo.png'} 
-                  alt="프로필" 
+                <img
+                  src={profileImg ? `http://localhost:80${profileImg}` : '/images/logo.png'}
+                  alt="프로필"
                   className="author-avatar"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
@@ -398,7 +428,7 @@ const TripTalk: React.FC = () => {
                 />
                 <span className="author-name">{nickname || '사용자'}</span>
               </div>
-              
+
               <form onSubmit={handleSubmitPost}>
                 <input
                   type="text"
@@ -407,14 +437,14 @@ const TripTalk: React.FC = () => {
                   onChange={(e) => setNewPost({...newPost, title: e.target.value})}
                   className="post-title-input"
                 />
-                
+
                 <textarea
                   placeholder="내용을 입력해주세요..."
                   value={newPost.content}
                   onChange={(e) => setNewPost({...newPost, content: e.target.value})}
                   className="post-content-input"
                 />
-                
+
                 <div className="post-actions">
                   <div className="image-upload">
                     <input
@@ -431,7 +461,7 @@ const TripTalk: React.FC = () => {
                       <span className="selected-image">{newPost.image.name}</span>
                     )}
                   </div>
-                  
+
                   <button type="submit" className="submit-btn">
                     게시하기
                   </button>
@@ -443,16 +473,16 @@ const TripTalk: React.FC = () => {
           {/* 게시글 목록 */}
           <div className="posts-container" onScroll={handleScroll}>
             {filteredPosts.map(post => (
-              <div 
-                key={post.id} 
+              <div
+                key={post.id}
                 className="post-card"
                 onClick={() => handlePostClick(post)}
                 style={{ cursor: 'pointer' }}
               >
                 <div className="post-header">
-                                  <img 
-                  src={post.authorProfileImg ? `http://localhost:80${post.authorProfileImg}` : '/images/logo.png'} 
-                  alt="프로필" 
+                                  <img
+                  src={post.authorProfileImg ? `http://localhost:80${post.authorProfileImg}` : '/images/logo.png'}
+                  alt="프로필"
                   className="author-avatar"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
@@ -469,16 +499,16 @@ const TripTalk: React.FC = () => {
                       </span>
                     </div>
                   </div>
-                  
+
                 </div>
-                
+
                 <div className="post-content">
                   <h3 className="post-title">{post.title}</h3>
                   <p className="post-text">{post.content}</p>
                                      {post.imageUrl && (
-                     <img 
-                       src={post.imageUrl.startsWith('http') ? post.imageUrl : `http://localhost:80${post.imageUrl}`} 
-                       alt="게시글 이미지" 
+                     <img
+                       src={post.imageUrl.startsWith('http') ? post.imageUrl : `http://localhost:80${post.imageUrl}`}
+                       alt="게시글 이미지"
                        className="post-image"
                        onError={(e) => {
                          console.error('게시글 이미지 로드 실패:', post.imageUrl);
@@ -488,10 +518,10 @@ const TripTalk: React.FC = () => {
                      />
                    )}
                 </div>
-                
+
                 <div className="post-footer">
                   <div className="post-actions-left">
-                    <button 
+                    <button
                       className="action-btn"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -510,7 +540,7 @@ const TripTalk: React.FC = () => {
                 </div>
               </div>
             ))}
-            
+
             {/* 로딩 인디케이터 */}
             {isLoading && (
               <div className="loading-indicator">
@@ -518,7 +548,7 @@ const TripTalk: React.FC = () => {
                 게시글을 불러오는 중...
               </div>
             )}
-            
+
             {/* 게시글 끝 표시 */}
             {!hasMore && posts.length > 0 && (
               <div className="end-of-posts">
@@ -533,11 +563,12 @@ const TripTalk: React.FC = () => {
           {/* 실시간 정보 - 4개 도시 자동 슬라이드 */}
           <div className="sidebar-card">
             <h3>{weatherList.length > 0 ? `${weatherList[currentWeatherIndex].city} 실시간 정보` : '실시간 정보'}</h3>
-            <div 
-              className="live-info"
-              onMouseEnter={() => setIsAutoSlide(false)}
-              onMouseLeave={() => setIsAutoSlide(true)}
-            >
+            <div className={`weather-info-container ${isAnimating ? 'sliding' : ''}`}>
+              <div
+                className={`live-info ${isAnimating ? `slide-${slideDirection}` : 'slide-center'}`}
+                onMouseEnter={() => setIsAutoSlide(false)}
+                onMouseLeave={() => setIsAutoSlide(true)}
+              >
               {weatherLoading ? (
                 <div className="info-item">
                   <span className="info-label">날씨 정보 로딩 중...</span>
@@ -565,9 +596,9 @@ const TripTalk: React.FC = () => {
                     <div className="weather-condition">
                       {weatherList[currentWeatherIndex].weatherIcon && weatherList[currentWeatherIndex].weatherIcon.trim() !== '' ? (
                         weatherList[currentWeatherIndex].weatherIcon.startsWith('http') ? (
-                          <img 
-                            src={weatherList[currentWeatherIndex].weatherIcon} 
-                            alt="날씨 아이콘" 
+                          <img
+                            src={weatherList[currentWeatherIndex].weatherIcon}
+                            alt="날씨 아이콘"
                             className="weather-icon"
                             onError={(e) => {
                               console.error('🌤️ [TripTalk] 아이콘 로드 실패:', weatherList[currentWeatherIndex].weatherIcon);
@@ -597,20 +628,21 @@ const TripTalk: React.FC = () => {
                   <span className="info-label">날씨 정보를 불러올 수 없습니다</span>
                 </div>
               )}
-                          </div>
-             
-             {/* 날씨 제어 버튼 */}
-             <div className="weather-controls">
-               <button onClick={prevWeather} className="control-btn">
-                 <FaChevronLeft />
-               </button>
-               <button onClick={toggleAutoSlide} className="control-btn">
-                 {isAutoSlide ? <FaPause /> : <FaPlay />}
-               </button>
-               <button onClick={nextWeather} className="control-btn">
-                 <FaChevronRight />
-               </button>
-             </div>
+              </div>
+            </div>
+
+            {/* 날씨 제어 버튼 */}
+            <div className="weather-controls">
+              <button onClick={() => changeWeatherWithAnimation('left')} className="control-btn">
+                <FaChevronLeft />
+              </button>
+              <button onClick={toggleAutoSlide} className="control-btn">
+                {isAutoSlide ? <FaPause /> : <FaPlay />}
+              </button>
+              <button onClick={() => changeWeatherWithAnimation('right')} className="control-btn">
+                <FaChevronRight />
+              </button>
+            </div>
           </div>
           
           <div className="sidebar-card">

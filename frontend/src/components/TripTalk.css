@@ -1038,25 +1038,63 @@
   display: block;
 }
 
-/* 날씨 정보 슬라이드 애니메이션 */
+/* 날씨 정보 슬라이드 애니메이션 - 기본 상태 */
 .live-info {
-  transition: opacity 0.3s ease;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateX(0);
+  opacity: 1;
+  will-change: transform, opacity;
+  position: relative;
 }
 
-.live-info.fade-enter {
+
+
+/* 날씨 정보 컨테이너에 오버플로우 숨김 */
+.weather-info-container {
+  overflow: hidden;
+  position: relative;
+  min-height: 300px; /* 날씨 정보 높이만큼 고정 */
+}
+
+/* 날씨 정보 슬라이드 애니메이션 - 방향별 효과 */
+/* 왼쪽 버튼: 기존 내용이 오른쪽으로 밀리면서 왼쪽에서 새 내용 등장 */
+.live-info.slide-left {
+  transform: translateX(100%);
   opacity: 0;
 }
 
-.live-info.fade-enter-active {
-  opacity: 1;
-}
-
-.live-info.fade-exit {
-  opacity: 1;
-}
-
-.live-info.fade-exit-active {
+/* 오른쪽 버튼: 기존 내용이 왼쪽으로 밀리면서 오른쪽에서 새 내용 등장 */
+.live-info.slide-right {
+  transform: translateX(-100%);
   opacity: 0;
+}
+
+
+
+.live-info.slide-center {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* 슬라이드 중일 때 더 부드러운 전환 */
+.weather-info-container.sliding .live-info {
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 날씨 정보 페이드 효과 */
+.weather-info-container .live-info {
+  animation: fadeInSlide 0.6s ease-out;
+}
+
+@keyframes fadeInSlide {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 게시글 목록 컨테이너 */
