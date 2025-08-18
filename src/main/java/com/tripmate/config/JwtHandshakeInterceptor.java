@@ -15,7 +15,17 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
                                    WebSocketHandler wsHandler, Map<String, Object> attributes) {
         if (request instanceof ServletServerHttpRequest servletRequest) {
+            // 1. URL 파라미터에서 토큰 찾기
             String token = servletRequest.getServletRequest().getParameter("token");
+            
+            // 2. 헤더에서도 토큰 찾기
+            if (token == null) {
+                String authHeader = servletRequest.getServletRequest().getHeader("Authorization");
+                if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                    token = authHeader.substring(7);
+                }
+            }
+            
             if (token != null) {
                 attributes.put("token", token);
             }

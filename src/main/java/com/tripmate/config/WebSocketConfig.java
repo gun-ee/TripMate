@@ -33,11 +33,17 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
   @Override
   public void registerStompEndpoints(StompEndpointRegistry registry) {
-    // 채팅용 WebSocket 엔드포인트
-    registry.addEndpoint("/ws/chat")
+    // 지역 채팅용 WebSocket 엔드포인트
+    registry.addEndpoint("/ws/region-chat")
       .addInterceptors(jwtHandshakeInterceptor)
       .setAllowedOriginPatterns("*")  // 프론트 React와 연결 가능
       .withSockJS();  // SockJS fallback 허용
+
+    // 기존 채팅용 WebSocket 엔드포인트
+    registry.addEndpoint("/ws/chat")
+      .addInterceptors(jwtHandshakeInterceptor)
+      .setAllowedOriginPatterns("*")
+      .withSockJS();
 
     // 경매용 WebSocket 엔드포인트
     registry.addEndpoint("/ws/auction")

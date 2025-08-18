@@ -44,6 +44,7 @@ public class SecurityConfig {
                     .requestMatchers("/api/members/signup", "/api/members/login", "/api/members/find-id", "/api/members/reset-password", "/api/members/public/**").permitAll()
                     .requestMatchers("/api/members/me", "/api/members/**").authenticated() // 순서 중요
                     .requestMatchers("/api/boards/**").authenticated()
+                    .requestMatchers("/ws/**", "/sockjs-node/**").permitAll() // 웹소켓은 Spring Security 제외, 자체 인증 사용
                     .anyRequest().permitAll()
             )
             .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, userDetailsService), UsernamePasswordAuthenticationFilter.class)
