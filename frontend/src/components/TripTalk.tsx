@@ -16,13 +16,17 @@ const TripTalk: React.FC = () => {
     addPost
   } = usePostContext();
 
+  // 여행지 선택 상태 추가
+  const [selectedRegion, setSelectedRegion] = useState<string>('일본'); // 기본값은 일본
+
   const [profileImg, setProfileImg] = useState<string>('');
   const [nickname, setNickname] = useState<string>('');
   const [showOnlyTraveling, setShowOnlyTraveling] = useState<boolean>(false);
   const [newPost, setNewPost] = useState({
     title: '',
     content: '',
-    image: null as File | null
+    image: null as File | null,
+    region: '일본' // 기본값은 일본
   });
 
   // 모달 관련 상태
@@ -160,6 +164,11 @@ const TripTalk: React.FC = () => {
     }
   }, [isLoggedIn]);
 
+  // 선택된 여행지가 변경될 때 newPost.region도 업데이트
+  useEffect(() => {
+    setNewPost(prev => ({ ...prev, region: selectedRegion }));
+  }, [selectedRegion]);
+
   // 날씨 정보와 인기 게시글 가져오기 useEffect 수정
   useEffect(() => {
     fetchAllCitiesWeather();
@@ -214,7 +223,9 @@ const TripTalk: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const response = await axiosInstance.get(`/posts?page=${page}&size=${postsPerPage}`);
+      // 선택된 여행지에 따라 region 파라미터 추가
+      const regionParam = selectedRegion ? `&region=${encodeURIComponent(selectedRegion)}` : '';
+      const response = await axiosInstance.get(`/posts?page=${page}&size=${postsPerPage}${regionParam}`);
              const newPosts = response.data.content;
 
        // 이미지 URL 디버깅
@@ -253,6 +264,14 @@ const TripTalk: React.FC = () => {
     loadPosts(0, false);
   }, []);
 
+  // 선택된 여행지가 변경될 때마다 게시글 다시 로드
+  useEffect(() => {
+    setPosts([]); // 기존 게시글 초기화
+    setCurrentPage(0);
+    setHasMore(true);
+    loadPosts(0, false);
+  }, [selectedRegion]);
+
   const handleLike = async (postId: number) => {
     try {
       const response = await axiosInstance.post(`/posts/${postId}/like`);
@@ -285,6 +304,7 @@ const TripTalk: React.FC = () => {
     const formData = new FormData();
     formData.append('title', newPost.title);
     formData.append('content', newPost.content);
+    formData.append('region', selectedRegion); // 현재 선택된 여행지 정보 추가
     if (newPost.image) {
       formData.append('image', newPost.image);
     }
@@ -304,6 +324,7 @@ const TripTalk: React.FC = () => {
          imageUrl: response.data.imageUrl,
          authorName: response.data.authorName,
          authorProfileImg: response.data.authorProfileImg,
+         region: response.data.region,
          createdAt: new Date(response.data.createdAt),
          likeCount: response.data.likeCount,
          commentCount: response.data.commentCount,
@@ -313,7 +334,7 @@ const TripTalk: React.FC = () => {
        console.log('📸 [TripTalk] 새 게시글 이미지 URL:', response.data.imageUrl);
 
       addPost(newPostData);
-      setNewPost({ title: '', content: '', image: null });
+      setNewPost({ title: '', content: '', image: null, region: selectedRegion }); // region 정보 유지
 
     } catch (error) {
       console.error('게시글 작성 실패:', error);
@@ -340,10 +361,30 @@ const TripTalk: React.FC = () => {
           <div className="sidebar-card">
             <h3>여행지</h3>
             <div className="quick-filters">
-              <button className="quick-filter-btn">대한민국</button>
-              <button className="quick-filter-btn">동남아시아</button>
-              <button className="quick-filter-btn">일본</button>
-              <button className="quick-filter-btn">유럽</button>
+              <button 
+                className={`quick-filter-btn ${selectedRegion === '대한민국' ? 'active' : ''}`}
+                onClick={() => setSelectedRegion('대한민국')}
+              >
+                대한민국
+              </button>
+              <button 
+                className={`quick-filter-btn ${selectedRegion === '동남아시아' ? 'active' : ''}`}
+                onClick={() => setSelectedRegion('동남아시아')}
+              >
+                동남아시아
+              </button>
+              <button 
+                className={`quick-filter-btn ${selectedRegion === '일본' ? 'active' : ''}`}
+                onClick={() => setSelectedRegion('일본')}
+              >
+                일본
+              </button>
+              <button 
+                className={`quick-filter-btn ${selectedRegion === '유럽' ? 'active' : ''}`}
+                onClick={() => setSelectedRegion('유럽')}
+              >
+                유럽
+              </button>
             </div>
           </div>
 
@@ -375,7 +416,7 @@ const TripTalk: React.FC = () => {
         <div className="triptalk-main">
           {/* 헤더 */}
           <div className="triptalk-header">
-            <h1>일본</h1>
+            <h1>{selectedRegion}</h1>
             <div className="triptalk-stats">
               <div className="stat-item">
                 <span className="stat-label">여행 준비중</span>
@@ -387,7 +428,7 @@ const TripTalk: React.FC = () => {
               </div>
             </div>
             <div className="triptalk-image">
-              <img src="/images/logo.png" alt="일본" />
+              <img src="/images/logo.png" alt={selectedRegion} />
             </div>
           </div>
 
@@ -495,7 +536,7 @@ const TripTalk: React.FC = () => {
                     <span className="author-name">{post.authorName}</span>
                     <div className="post-meta">
                       <span className="location">
-                        오사카
+                        {post.region || '지역 정보 없음'}
                       </span>
                     </div>
                   </div>

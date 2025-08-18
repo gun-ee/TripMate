@@ -21,6 +21,7 @@ public class PostListResponse {
     private String imageUrl;
     private String authorName;
     private String authorProfileImg;
+    private String region;
     private LocalDateTime createdAt;
     private int likeCount;
     private int commentCount;

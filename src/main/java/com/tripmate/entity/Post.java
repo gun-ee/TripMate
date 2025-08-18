@@ -35,6 +35,10 @@ public class Post extends BaseTimeEntity {
     
     private String imageUrl;
     
+    // 여행지 구분을 위한 region 필드 추가
+    @Column(nullable = false, length = 50)
+    private String region;
+    
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PostStatus status = PostStatus.ACTIVE;

@@ -56,6 +56,7 @@ public class PostService {
                 .title(request.getTitle())
                 .content(request.getContent())
                 .imageUrl(imageUrl)
+                .region(request.getRegion())
                 .status(PostStatus.ACTIVE)
                 .build();
         
@@ -67,6 +68,13 @@ public class PostService {
     // 게시글 목록 조회 (페이지네이션)
     public Page<PostListResponse> getPosts(Pageable pageable, Long currentMemberId) {
         Page<Post> posts = postRepository.findByStatusOrderByCreatedAtDesc(PostStatus.ACTIVE, pageable);
+        
+        return posts.map(post -> convertToPostListResponse(post, currentMemberId));
+    }
+    
+    // 특정 지역 게시글 조회
+    public Page<PostListResponse> getPostsByRegion(String region, Pageable pageable, Long currentMemberId) {
+        Page<Post> posts = postRepository.findByRegionAndStatusOrderByCreatedAtDesc(region, PostStatus.ACTIVE, pageable);
         
         return posts.map(post -> convertToPostListResponse(post, currentMemberId));
     }
@@ -180,6 +188,7 @@ public class PostService {
                 .imageUrl(post.getImageUrl())
                 .authorName(post.getAuthor().getNickname()) // username 대신 nickname 사용
                 .authorProfileImg(post.getAuthor().getProfileImg())
+                .region(post.getRegion())
                 .createdAt(post.getCreatedAt())
                 .likeCount(post.getLikeCount())
                 .commentCount(post.getCommentCount())

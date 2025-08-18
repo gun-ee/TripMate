@@ -32,10 +32,11 @@ public class PostController {
     public ResponseEntity<PostListResponse> createPost(
             @RequestParam String title,
             @RequestParam String content,
+            @RequestParam String region,
             @RequestPart(required = false) MultipartFile image,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         
-        log.info("게시글 작성 요청: {}", title);
+        log.info("게시글 작성 요청: {} - {}", title, region);
         log.info("인증된 사용자: {}", userDetails != null ? userDetails.getMemberId() : "NULL");
         log.info("사용자 정보: {}", userDetails);
         
@@ -44,6 +45,7 @@ public class PostController {
         PostCreateRequest request = PostCreateRequest.builder()
                 .title(title)
                 .content(content)
+                .region(region)
                 .build();
         
         PostListResponse response = postService.createPost(request, member, image);
@@ -56,13 +58,34 @@ public class PostController {
     public ResponseEntity<Page<PostListResponse>> getPosts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String region,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         
         Pageable pageable = PageRequest.of(page, size);
         Long memberId = userDetails != null ? userDetails.getMemberId() : null;
         
-        Page<PostListResponse> posts = postService.getPosts(pageable, memberId);
+        Page<PostListResponse> posts;
+        if (region != null && !region.trim().isEmpty()) {
+            posts = postService.getPostsByRegion(region, pageable, memberId);
+        } else {
+            posts = postService.getPosts(pageable, memberId);
+        }
         
+        return ResponseEntity.ok(posts);
+    }
+    
+    // 특정 지역 게시글 조회
+    @GetMapping("/region/{region}")
+    public ResponseEntity<Page<PostListResponse>> getPostsByRegion(
+            @PathVariable String region,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Long memberId = userDetails != null ? userDetails.getMemberId() : null;
+        
+        Page<PostListResponse> posts = postService.getPostsByRegion(region, pageable, memberId);
         return ResponseEntity.ok(posts);
     }
     

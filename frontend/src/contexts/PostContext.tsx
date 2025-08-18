@@ -7,6 +7,7 @@ export interface Post {
   imageUrl?: string;
   authorName: string;
   authorProfileImg: string;
+  region?: string;
   createdAt: Date;
   likeCount: number;
   commentCount: number;

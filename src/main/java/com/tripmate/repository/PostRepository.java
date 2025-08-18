@@ -17,6 +17,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     // 활성 상태인 게시글만 조회
     Page<Post> findByStatusOrderByCreatedAtDesc(PostStatus status, Pageable pageable);
     
+    // 특정 지역의 활성 상태인 게시글 조회
+    Page<Post> findByRegionAndStatusOrderByCreatedAtDesc(String region, PostStatus status, Pageable pageable);
+    
     // 특정 사용자의 게시글 조회
     Page<Post> findByAuthorIdAndStatusOrderByCreatedAtDesc(Long authorId, PostStatus status, Pageable pageable);
     
