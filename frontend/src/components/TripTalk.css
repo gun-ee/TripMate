@@ -103,6 +103,8 @@
   display: flex;
   gap: 48px;
   margin-bottom: var(--spacing-xl);
+  flex-wrap: wrap;
+  align-items: flex-start;
 }
 
 .stat-item {
@@ -121,6 +123,65 @@
   font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+/* 지역채팅방 버튼 스크롤 영역 */
+.region-chat-buttons-scroll {
+  display: flex;
+  gap: var(--spacing-md);
+  overflow-x: auto;
+  padding: var(--spacing-sm) 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-color) transparent;
+  -webkit-overflow-scrolling: touch;
+  max-width: calc(100% - 200px); /* 이미지 영역만큼 제외 */
+  flex-shrink: 0;
+}
+
+.region-chat-buttons-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.region-chat-buttons-scroll::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.region-chat-buttons-scroll::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 3px;
+}
+
+.region-chat-buttons-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-hover);
+}
+
+/* 지역채팅방 버튼 */
+.region-chat-btn {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.region-chat-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(38, 166, 154, 0.3);
+}
+
+.region-chat-btn:active {
+  transform: translateY(0);
 }
 
 .triptalk-image {
@@ -616,6 +677,16 @@
     gap: 20px;
   }
   
+  .region-chat-buttons-scroll {
+    max-width: calc(100% - 120px);
+    gap: 12px;
+  }
+  
+  .region-chat-btn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  
   .triptalk-filters {
     flex-direction: column;
     align-items: stretch;
@@ -665,6 +736,16 @@
   
   .stat-value {
     font-size: 16px;
+  }
+  
+  .region-chat-buttons-scroll {
+    max-width: calc(100% - 80px);
+    gap: 10px;
+  }
+  
+  .region-chat-btn {
+    padding: 8px 14px;
+    font-size: 12px;
   }
   
   .triptalk-filters {

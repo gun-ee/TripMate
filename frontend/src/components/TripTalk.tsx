@@ -5,6 +5,7 @@ import { usePostContext, type Post } from '../contexts/PostContext';
 import axiosInstance from '../api/axios';
 import Header from './Header';
 import PostDetailModal from './PostDetailModal';
+import RegionChatModal from './RegionChatModal';
 import './TripTalk.css';
 
 const TripTalk: React.FC = () => {
@@ -17,7 +18,7 @@ const TripTalk: React.FC = () => {
   } = usePostContext();
 
   // 여행지 선택 상태 추가
-  const [selectedRegion, setSelectedRegion] = useState<string>('일본'); // 기본값은 일본
+  const [selectedRegion, setSelectedRegion] = useState<string>('대한민국'); // 기본값은 일본
 
   // 여행지별 도시 정보 매핑
   const regionCities = {
@@ -34,12 +35,14 @@ const TripTalk: React.FC = () => {
     title: '',
     content: '',
     image: null as File | null,
-    region: '일본' // 기본값은 일본
+    region: '대한민국' // 기본값은 대한민국
   });
 
   // 모달 관련 상태
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRegionChatOpen, setIsRegionChatOpen] = useState(false); // 지역채팅 모달 상태 추가
+  const [selectedCity, setSelectedCity] = useState<string>(''); // 선택된 도시 상태 추가
 
   // 무한스크롤링 관련 상태
   const [currentPage, setCurrentPage] = useState<number>(0);
@@ -453,6 +456,20 @@ const TripTalk: React.FC = () => {
                 <span className="stat-label">여행중</span>
                 <span className="stat-value">4,826명</span>
               </div>
+              <div className="region-chat-buttons-scroll">
+                {regionCities[selectedRegion as keyof typeof regionCities]?.map((city) => (
+                  <button 
+                    key={city}
+                    className="region-chat-btn"
+                    onClick={() => {
+                      setSelectedCity(city);
+                      setIsRegionChatOpen(true);
+                    }}
+                  >
+                    💬 {city} 채팅방
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="triptalk-image">
               <img src="/images/logo.png" alt={selectedRegion} />
@@ -738,6 +755,14 @@ const TripTalk: React.FC = () => {
         post={selectedPost}
         isOpen={isModalOpen}
         onClose={handleCloseModal}
+      />
+
+      {/* 지역채팅 모달 */}
+      <RegionChatModal
+        isOpen={isRegionChatOpen}
+        onClose={() => setIsRegionChatOpen(false)}
+        region={selectedRegion}
+        city={selectedCity || regionCities[selectedRegion as keyof typeof regionCities]?.[0] || '도시'}
       />
     </>
   );
