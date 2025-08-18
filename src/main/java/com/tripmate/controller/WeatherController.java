@@ -56,6 +56,56 @@ public class WeatherController {
         }
     }
 
+    // 여행지별 도시들의 날씨 정보를 가져오는 엔드포인트
+    @GetMapping("/region/{region}")
+    public ResponseEntity<List<WeatherInfo>> getWeatherByRegion(@PathVariable String region) {
+        try {
+            List<WeatherInfo> weatherList = new ArrayList<>();
+            
+            switch (region) {
+                case "대한민국":
+                    weatherList.add(weatherService.getWeather("Seoul"));
+                    weatherList.add(weatherService.getWeather("Busan"));
+                    weatherList.add(weatherService.getWeather("Jeju"));
+                    weatherList.add(weatherService.getWeather("Incheon"));
+                    weatherList.add(weatherService.getWeather("Gyeongju"));
+                    break;
+                case "동남아시아":
+                    weatherList.add(weatherService.getWeather("Yangon")); // 미얀마
+                    weatherList.add(weatherService.getWeather("Vientiane")); // 라오스
+                    weatherList.add(weatherService.getWeather("Hanoi")); // 베트남
+                    weatherList.add(weatherService.getWeather("Bangkok")); // 태국
+                    weatherList.add(weatherService.getWeather("Taipei")); // 대만
+                    break;
+                case "일본":
+                    weatherList.add(weatherService.getWeather("Osaka"));
+                    weatherList.add(weatherService.getWeather("Fukuoka"));
+                    weatherList.add(weatherService.getWeather("Tokyo"));
+                    weatherList.add(weatherService.getWeather("Sapporo"));
+                    break;
+                case "유럽":
+                    weatherList.add(weatherService.getWeather("Berlin")); // 독일
+                    weatherList.add(weatherService.getWeather("Madrid")); // 스페인
+                    weatherList.add(weatherService.getWeather("London")); // 영국
+                    weatherList.add(weatherService.getWeather("Rome")); // 이탈리아
+                    weatherList.add(weatherService.getWeather("Prague")); // 체코
+                    weatherList.add(weatherService.getWeather("Paris")); // 프랑스
+                    break;
+                default:
+                    // 기본값은 일본
+                    weatherList.add(weatherService.getWeather("Osaka"));
+                    weatherList.add(weatherService.getWeather("Fukuoka"));
+                    weatherList.add(weatherService.getWeather("Tokyo"));
+                    weatherList.add(weatherService.getWeather("Sapporo"));
+                    break;
+            }
+            
+            return ResponseEntity.ok(weatherList);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     // 테스트용 간단한 엔드포인트
     @GetMapping("/test")
     public ResponseEntity<String> test() {

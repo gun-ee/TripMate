@@ -19,6 +19,14 @@ const TripTalk: React.FC = () => {
   // 여행지 선택 상태 추가
   const [selectedRegion, setSelectedRegion] = useState<string>('일본'); // 기본값은 일본
 
+  // 여행지별 도시 정보 매핑
+  const regionCities = {
+    '대한민국': ['서울', '부산', '제주', '인천', '경주'],
+    '동남아시아': ['미얀마', '라오스', '베트남', '태국', '대만'],
+    '일본': ['오사카', '후쿠오카', '도쿄', '삿포로'],
+    '유럽': ['독일', '스페인', '영국', '이탈리아', '체코', '프랑스']
+  };
+
   const [profileImg, setProfileImg] = useState<string>('');
   const [nickname, setNickname] = useState<string>('');
   const [showOnlyTraveling, setShowOnlyTraveling] = useState<boolean>(false);
@@ -50,6 +58,17 @@ const TripTalk: React.FC = () => {
     condition: string;
     uv: number;
   }>>([]);
+
+  // 날씨 API 응답 타입 정의
+  interface WeatherApiResponse {
+    tempC: number;
+    feelslikeC: number;
+    humidity: number;
+    windKph: number;
+    weatherIcon: string;
+    condition: string;
+    uv: number;
+  }
   const [currentWeatherIndex, setCurrentWeatherIndex] = useState(0);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [isAutoSlide, setIsAutoSlide] = useState(true);
@@ -62,13 +81,16 @@ const TripTalk: React.FC = () => {
   const fetchAllCitiesWeather = async () => {
     setWeatherLoading(true);
     try {
-      const response = await axiosInstance.get('/weather/cities');
-      const weatherData = response.data.map((weather: any, index: number) => ({
-        city: ['오사카', '후쿠오카', '도쿄', '삿포로'][index],
+      // 여행지별 날씨 API 호출
+      const response = await axiosInstance.get(`/weather/region/${encodeURIComponent(selectedRegion)}`);
+      const currentCities = regionCities[selectedRegion as keyof typeof regionCities] || regionCities['일본'];
+      
+      const weatherData = response.data.map((weather: WeatherApiResponse, index: number) => ({
+        city: currentCities[index % currentCities.length],
         ...weather
       }));
       setWeatherList(weatherData);
-      console.log('🌤️ [TripTalk] 4개 도시 날씨 정보:', weatherData);
+      console.log(`🌤️ [TripTalk] ${selectedRegion} 도시 날씨 정보:`, weatherData);
     } catch (error) {
       console.error('🌤️ [TripTalk] 날씨 정보 가져오기 실패:', error);
     } finally {
@@ -180,6 +202,11 @@ const TripTalk: React.FC = () => {
     }, 30 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // selectedRegion 변경 시 날씨 정보 업데이트
+  useEffect(() => {
+    fetchAllCitiesWeather();
+  }, [selectedRegion]);
 
   // 시간 표시 함수 추가 (안전장치 포함)
   const formatTimestamp = (createdAt: Date | string): string => {
