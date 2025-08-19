@@ -185,17 +185,20 @@ const RegionChatModal: React.FC<RegionChatModalProps> = ({ isOpen, onClose, regi
 
   const checkUserLocation = async () => {
     try {
-      // 실제 구현시에는 GPS 기반 위치 확인
-      // 임시로 랜덤하게 위치 설정 (테스트용)
-      const mockLocation: UserLocation = {
-        userId: '1',
-        city: city,
-        region: region,
-        canChat: Math.random() > 0.5 // 50% 확률로 채팅 가능
-      };
-      
-      setUserLocation(mockLocation);
-      setCanChat(mockLocation.canChat);
+      // GPS 기반 위치 확인으로 변경
+      // getCurrentLocation() 함수에서 이미 canChat 상태를 설정하므로
+      // 여기서는 사용자 위치 정보만 업데이트
+      if (currentCity) {
+        const userLocation: UserLocation = {
+          userId: '1',
+          city: currentCity,
+          region: region,
+          canChat: currentCity === city // GPS 도시명과 채팅방 도시명 비교
+        };
+        
+        setUserLocation(userLocation);
+        console.log('📍 [RegionChatModal] 사용자 위치 정보 업데이트:', userLocation);
+      }
     } catch (error) {
       console.error('사용자 위치 확인 실패:', error);
       setCanChat(false);
@@ -272,6 +275,22 @@ const RegionChatModal: React.FC<RegionChatModalProps> = ({ isOpen, onClose, regi
       setCurrentCity(cityName);
       
       console.log('📍 [RegionChatModal] 현재 위치한 도시:', cityName);
+      
+      // GPS로 받아온 도시명과 채팅방 도시명 비교하여 채팅 권한 설정
+      console.log('📍 [RegionChatModal] 채팅 권한 확인 시작');
+      console.log('  - GPS 도시명:', cityName);
+      console.log('  - 채팅방 도시명:', city);
+      
+      const isLocationMatch = cityName === city;
+      console.log('📍 [RegionChatModal] 위치 일치 여부:', isLocationMatch);
+      
+      if (isLocationMatch) {
+        setCanChat(true);
+        console.log('📍 [RegionChatModal] 채팅 권한 부여됨');
+      } else {
+        setCanChat(false);
+        console.log('📍 [RegionChatModal] 채팅 권한 거부됨 - 위치 불일치');
+      }
       
     } catch (error) {
       console.error('📍 [RegionChatModal] GPS 위치 가져오기 실패:', error);
@@ -378,7 +397,7 @@ const RegionChatModal: React.FC<RegionChatModalProps> = ({ isOpen, onClose, regi
                   </div>
                   <div className="message-content">
                     <div className="message-header">
-                      <span className="message-author">{message.authorName}</span>
+                      <span className="message-author">{message.memberName || message.authorName}</span>
                       <span className="message-time">{formatMessageTime(message.createdAt)}</span>
                     </div>
                     <div className="message-bubble">

@@ -3,9 +3,11 @@ export interface ChatMessage {
   content: string;
   memberId: number;
   memberName: string;
-  memberProfileImg?: string;
+  authorName: string;
+  authorProfileImg?: string;
   city: string;
   createdAt: string;
+  isDeleted?: boolean;
 }
 
 export interface ChatRoom {
@@ -19,5 +21,7 @@ export interface ChatRoom {
 export interface UserLocation {
   userId: string;
   city: string;
+  region: string;
+  canChat: boolean;
 }
 
