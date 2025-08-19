@@ -10,8 +10,6 @@ import lombok.*;
 public class RegionChatMessageRequest {
     
     private String content;
-    private String region;
     private String city;
-    private String authorLocation;
 }
 

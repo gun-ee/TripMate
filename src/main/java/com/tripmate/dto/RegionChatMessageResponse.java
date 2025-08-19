@@ -13,13 +13,10 @@ public class RegionChatMessageResponse {
     
     private Long id;
     private String content;
-    private String authorId;
-    private String authorName;
-    private String authorProfileImg;
-    private String authorLocation;
-    private String region;
+    private Long memberId;
+    private String memberName;
+    private String memberProfileImg;
     private String city;
     private LocalDateTime createdAt;
-    private Boolean isDeleted;
 }
 

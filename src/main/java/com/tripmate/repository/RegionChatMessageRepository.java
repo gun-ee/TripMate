@@ -13,24 +13,22 @@ import java.util.List;
 @Repository
 public interface RegionChatMessageRepository extends JpaRepository<RegionChatMessage, Long> {
     
-    // 특정 지역/도시의 메시지 조회 (최신순)
-    @Query("SELECT m FROM RegionChatMessage m WHERE m.region = :region AND m.city = :city AND m.isDeleted = false ORDER BY m.createdAt DESC")
-    Page<RegionChatMessage> findByRegionAndCityOrderByCreatedAtDesc(
-        @Param("region") String region, 
+    // 특정 도시의 메시지 조회 (최신순)
+    @Query("SELECT m FROM RegionChatMessage m WHERE m.city = :city ORDER BY m.createdAt DESC")
+    Page<RegionChatMessage> findByCityOrderByCreatedAtDesc(
         @Param("city") String city, 
         Pageable pageable
     );
     
-    // 특정 지역/도시의 최근 메시지 조회 (페이지네이션)
-    @Query("SELECT m FROM RegionChatMessage m WHERE m.region = :region AND m.city = :city AND m.isDeleted = false AND m.id > :lastMessageId ORDER BY m.createdAt ASC")
+    // 특정 도시의 최근 메시지 조회 (페이지네이션)
+    @Query("SELECT m FROM RegionChatMessage m WHERE m.city = :city AND m.id > :lastMessageId ORDER BY m.createdAt ASC")
     List<RegionChatMessage> findNewMessagesAfterId(
-        @Param("region") String region, 
         @Param("city") String city, 
         @Param("lastMessageId") Long lastMessageId
     );
     
-    // 특정 지역/도시의 메시지 수 조회
-    @Query("SELECT COUNT(m) FROM RegionChatMessage m WHERE m.region = :region AND m.city = :city AND m.isDeleted = false")
-    long countByRegionAndCity(@Param("region") String region, @Param("city") String city);
+    // 특정 도시의 메시지 수 조회
+    @Query("SELECT COUNT(m) FROM RegionChatMessage m WHERE m.city = :city")
+    long countByCity(@Param("city") String city);
 }
 
