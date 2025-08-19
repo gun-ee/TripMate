@@ -30,15 +30,25 @@ const RegionChatModal: React.FC<RegionChatModalProps> = ({ isOpen, onClose, regi
       
       // 메시지 형식에 맞게 변환하여 addMessage 호출
       if (message && typeof message === 'object' && 'content' in message) {
+        const messageData = message as {
+          id?: number;
+          content: string;
+          memberId?: number;
+          memberName?: string;
+          memberProfileImg?: string;
+          city?: string;
+          createdAt?: string;
+        };
+        
         const chatMessage = {
-          id: Date.now(), // 임시 ID
-          content: (message as { content: string }).content,
-          memberId: 0, // 백엔드에서 제공하는 실제 memberId로 대체 필요
-          memberName: (message as { authorName?: string }).authorName || '알 수 없음',
-          authorName: (message as { authorName?: string }).authorName || '알 수 없음',
-          authorProfileImg: undefined,
+          id: messageData.id || Date.now(),
+          content: messageData.content,
+          memberId: messageData.memberId || 0,
+          memberName: messageData.memberName || '알 수 없음',
+          authorName: messageData.memberName || '알 수 없음',
+          authorProfileImg: messageData.memberProfileImg || undefined,
           city: city,
-          createdAt: new Date().toISOString(),
+          createdAt: messageData.createdAt || new Date().toISOString(),
           isDeleted: false
         };
         addMessage(chatMessage);

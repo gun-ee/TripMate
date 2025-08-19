@@ -1,6 +1,7 @@
 package com.tripmate.config;
 
 import com.tripmate.config.JwtHandshakeInterceptor;
+import com.tripmate.config.CustomUserDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
@@ -83,6 +84,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
             accessor.setUser(auth);
             SecurityContextHolder.getContext().setAuthentication(auth);
+            
+            // Member 정보를 sessionAttributes에 저장하여 메시지 핸들러에서 사용
+            if (userDetails instanceof CustomUserDetails) {
+              CustomUserDetails customUserDetails = (CustomUserDetails) userDetails;
+              accessor.getSessionAttributes().put("memberId", customUserDetails.getMemberId());
+              accessor.getSessionAttributes().put("memberEmail", customUserDetails.getUsername());
+            }
+            
             System.out.println("preSend - auth created: " + auth);
             System.out.println("preSend - SecurityContextHolder set: " + SecurityContextHolder.getContext().getAuthentication());
           }

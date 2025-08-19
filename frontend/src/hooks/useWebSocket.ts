@@ -9,7 +9,7 @@ interface UseWebSocketProps {
   onMessageReceived?: (message: unknown) => void;
 }
 
-export const useWebSocket = ({ city, isOpen, isLoggedIn }: UseWebSocketProps) => {
+export const useWebSocket = ({ city, isOpen, isLoggedIn, onMessageReceived }: UseWebSocketProps) => {
   const [stompClient, setStompClient] = useState<Client | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
@@ -20,26 +20,31 @@ export const useWebSocket = ({ city, isOpen, isLoggedIn }: UseWebSocketProps) =>
       if (!token) return;
 
       const client = new Client({
-        webSocketFactory: () => new SockJS(`/ws/region-chat`),
-        connectHeaders: {
-          'Authorization': `Bearer ${token}`
-        }
+        webSocketFactory: () => new SockJS(`/ws/region-chat?token=${token}`),
+        // connectHeaders 제거 - URL 파라미터로 JWT 전송
       });
 
       client.onConnect = () => {
         setIsConnected(true);
         console.log('🔌 [useWebSocket] WebSocket 연결 성공');
+        console.log('🔌 [useWebSocket] 연결된 도시:', city);
         
         // 해당 지역 채팅방 구독
-        client.subscribe(`/topic/region-chat/${city}`, (message) => {
+        console.log('🔔 [useWebSocket] 구독 시작 - 경로:', `/topic/region-chat/${city}`);
+        const subscription = client.subscribe(`/topic/region-chat/${city}`, (message) => {
           try {
             const newMessage = JSON.parse(message.body);
-            console.log('🔌 [useWebSocket] 새 메시지 수신:', newMessage);
-            // 메시지 처리는 상위 컴포넌트에서 담당
+            console.log('💬 [useWebSocket] 메시지 수신:', newMessage);
+            
+            // onMessageReceived 콜백으로 메시지 전달
+            if (onMessageReceived) {
+              onMessageReceived(newMessage);
+            }
           } catch (error) {
             console.error('🔌 [useWebSocket] 메시지 파싱 실패:', error);
           }
         });
+        console.log('✅ [useWebSocket] 구독 성공 - subscription:', subscription);
       };
 
       client.onStompError = (frame) => {
@@ -53,7 +58,7 @@ export const useWebSocket = ({ city, isOpen, isLoggedIn }: UseWebSocketProps) =>
       console.error('🔌 [useWebSocket] WebSocket 연결 실패:', error);
       setIsConnected(false);
     }
-  }, []); // city 의존성 제거
+  }, [city]); // city 의존성 복원
 
   // WebSocket 연결 해제
   const disconnectWebSocket = useCallback(() => {
@@ -73,15 +78,22 @@ export const useWebSocket = ({ city, isOpen, isLoggedIn }: UseWebSocketProps) =>
     }
 
     try {
-      stompClient.publish({
-        destination: `/app/region-chat/${city}`,
-        body: JSON.stringify({
-          content,
-          city
-        })
+      const destination = `/app/region-chat/${city}`;
+      const messageBody = JSON.stringify({
+        content,
+        city
       });
       
-      console.log('🔌 [useWebSocket] 메시지 전송 성공:', content);
+      console.log('📤 [useWebSocket] 메시지 전송 시작');
+      console.log('📤 [useWebSocket] 전송 경로:', destination);
+      console.log('📤 [useWebSocket] 메시지 내용:', messageBody);
+      
+      stompClient.publish({
+        destination,
+        body: messageBody
+      });
+      
+      console.log('✅ [useWebSocket] 메시지 전송 성공:', content);
       return true;
     } catch (error) {
       console.error('🔌 [useWebSocket] 메시지 전송 실패:', error);
@@ -100,7 +112,7 @@ export const useWebSocket = ({ city, isOpen, isLoggedIn }: UseWebSocketProps) =>
       console.log('🔌 [useWebSocket] 모달 닫힘 - WebSocket 연결 해제');
       disconnectWebSocket();
     };
-  }, [isOpen, isLoggedIn]); // connectWebSocket, disconnectWebSocket 의존성 제거
+  }, [isOpen, isLoggedIn, connectWebSocket, disconnectWebSocket]); // 의존성 복원
 
   return {
     stompClient,

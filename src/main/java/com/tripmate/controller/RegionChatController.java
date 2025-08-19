@@ -12,8 +12,9 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -63,11 +64,18 @@ public class RegionChatController {
     public RegionChatMessageResponse handleMessage(
             @Payload RegionChatMessageRequest request,
             @PathVariable String city,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            StompHeaderAccessor accessor) {
         
         try {
-            // UserDetails에서 Member 정보 추출
-            String email = userDetails.getUsername();
+            // sessionAttributes에서 Member 정보 가져오기
+            Long memberId = (Long) accessor.getSessionAttributes().get("memberId");
+            String email = (String) accessor.getSessionAttributes().get("memberEmail");
+            
+            if (memberId == null || email == null) {
+                throw new RuntimeException("사용자 정보를 찾을 수 없습니다.");
+            }
+            
+            // Member 정보 조회
             Member member = memberService.getMemberByEmail(email);
             
             // 메시지 저장
