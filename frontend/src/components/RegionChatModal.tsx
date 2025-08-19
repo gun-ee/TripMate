@@ -20,8 +20,32 @@ const RegionChatModal: React.FC<RegionChatModalProps> = ({ isOpen, onClose, regi
   
   // 커스텀 훅들을 사용하여 상태와 로직 분리
   const { currentCity, getCurrentLocation, isGPSLoading } = useGPSLocation();
-  const { isConnected, sendMessage } = useWebSocket({ region, city, isOpen, isLoggedIn });
-  const { messages, canChat } = useChat({ city, region, currentCity });
+  const { isConnected, sendMessage } = useWebSocket({ 
+    city, 
+    isOpen, 
+    isLoggedIn,
+    onMessageReceived: (message) => {
+      // WebSocket으로 받은 메시지를 useChat에 추가
+      console.log('💬 [RegionChatModal] WebSocket 메시지 수신:', message);
+      
+      // 메시지 형식에 맞게 변환하여 addMessage 호출
+      if (message && typeof message === 'object' && 'content' in message) {
+        const chatMessage = {
+          id: Date.now(), // 임시 ID
+          content: (message as { content: string }).content,
+          memberId: 0, // 백엔드에서 제공하는 실제 memberId로 대체 필요
+          memberName: (message as { authorName?: string }).authorName || '알 수 없음',
+          authorName: (message as { authorName?: string }).authorName || '알 수 없음',
+          authorProfileImg: undefined,
+          city: city,
+          createdAt: new Date().toISOString(),
+          isDeleted: false
+        };
+        addMessage(chatMessage);
+      }
+    }
+  });
+  const { messages, canChat, addMessage } = useChat({ city, region, currentCity });
 
   // 모달이 열릴 때 GPS 위치 자동 가져오기 (한 번만)
   useEffect(() => {

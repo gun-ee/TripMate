@@ -4,6 +4,7 @@ import com.tripmate.dto.RegionChatMessageRequest;
 import com.tripmate.dto.RegionChatMessageResponse;
 import com.tripmate.entity.Member;
 import com.tripmate.service.RegionChatService;
+import com.tripmate.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -24,21 +25,7 @@ public class RegionChatController {
     
     private final RegionChatService regionChatService;
     private final SimpMessagingTemplate messagingTemplate;
-    
-    // REST API: 메시지 전송
-    @PostMapping("/{city}/messages")
-    public ResponseEntity<RegionChatMessageResponse> sendMessage(
-            @PathVariable String city,
-            @RequestBody RegionChatMessageRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        
-        // UserDetails에서 Member 정보를 가져와야 하지만, 
-        // 현재는 간단히 구현을 위해 임시로 처리
-        // TODO: UserDetails에서 Member 정보 추출 로직 구현 필요
-        
-        // 임시로 null 처리 (실제 구현시에는 Member 정보 필요)
-        return ResponseEntity.ok().build();
-    }
+    private final MemberService memberService;
     
     // REST API: 메시지 조회 (페이지네이션)
     @GetMapping("/{city}/messages")
@@ -75,19 +62,25 @@ public class RegionChatController {
     @SendTo("/topic/region-chat/{city}")
     public RegionChatMessageResponse handleMessage(
             @Payload RegionChatMessageRequest request,
-            @PathVariable String city) {
+            @PathVariable String city,
+            @AuthenticationPrincipal UserDetails userDetails) {
         
-        // TODO: UserDetails에서 Member 정보 추출 로직 구현 필요
-        // 현재는 임시로 null 처리
-        
-        // 메시지 저장
-        // RegionChatMessageResponse response = regionChatService.sendMessage(request, member);
-        
-        // 임시 응답 (실제 구현시에는 저장된 메시지 반환)
-        return RegionChatMessageResponse.builder()
-            .content(request.getContent())
-            .city(city)
-            .build();
+        try {
+            // UserDetails에서 Member 정보 추출
+            String email = userDetails.getUsername();
+            Member member = memberService.getMemberByEmail(email);
+            
+            // 메시지 저장
+            RegionChatMessageResponse response = regionChatService.sendMessage(request, member);
+            return response;
+        } catch (Exception e) {
+            System.err.println("메시지 처리 중 오류 발생: " + e.getMessage());
+            e.printStackTrace();
+            return RegionChatMessageResponse.builder()
+                .content(request.getContent())
+                .city(city)
+                .build();
+        }
     }
 }
 
