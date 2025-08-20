@@ -19,7 +19,7 @@ const RegionChatModal: React.FC<RegionChatModalProps> = ({ isOpen, onClose, regi
   const { isLoggedIn } = useAuth();
   
   // 커스텀 훅들을 사용하여 상태와 로직 분리
-  const { currentCity, getCurrentLocation, isGPSLoading } = useGPSLocation();
+  const { currentCity, getCurrentLocation, isGPSLoading, resetGPSLocation } = useGPSLocation();
   const { isConnected, sendMessage } = useWebSocket({ 
     city, 
     isOpen, 
@@ -40,38 +40,47 @@ const RegionChatModal: React.FC<RegionChatModalProps> = ({ isOpen, onClose, regi
           createdAt?: string;
         };
         
-        const chatMessage = {
-          id: messageData.id || Date.now(),
-          content: messageData.content,
-          memberId: messageData.memberId || 0,
-          memberName: messageData.memberName || '알 수 없음',
-          authorName: messageData.memberName || '알 수 없음',
-          authorProfileImg: messageData.memberProfileImg || undefined,
-          city: city,
-          createdAt: messageData.createdAt || new Date().toISOString(),
-          isDeleted: false
-        };
+                 const chatMessage = {
+           id: Date.now() + Math.random(), // 고유한 ID 생성으로 중복 방지
+           content: messageData.content,
+           memberId: messageData.memberId || 0,
+           memberName: messageData.memberName || '알 수 없음',
+           authorName: messageData.memberName || '알 수 없음',
+           authorProfileImg: messageData.memberProfileImg || undefined,
+           memberProfileImg: messageData.memberProfileImg || undefined,
+           city: city,
+           createdAt: messageData.createdAt || new Date().toISOString(),
+           isDeleted: false
+         };
         addMessage(chatMessage);
       }
     }
   });
-  const { messages, canChat, addMessage } = useChat({ city, region, currentCity });
+  const { messages, canChat, addMessage, resetChat, loadMessages } = useChat({ city, region, currentCity });
 
-  // 모달이 열릴 때 GPS 위치 자동 가져오기 (한 번만)
+  // 모달이 열릴 때 GPS 위치 자동 가져오기 및 기존 메시지 로드
   useEffect(() => {
-    if (isOpen && !currentCity) {
+    if (isOpen) {
       console.log('📍 [RegionChatModal] 모달 열림 - GPS 위치 요청 시작');
+      
+      // GPS 위치 요청 (currentCity가 있어도 다시 요청)
       getCurrentLocation();
+      
+      // 기존 메시지 로드
+      console.log('💬 [RegionChatModal] 모달 열림 - 기존 메시지 로드 시작');
+      loadMessages();
     }
-  }, [isOpen]); // getCurrentLocation 의존성 제거
+  }, [isOpen, getCurrentLocation, loadMessages]);
 
-  // 모달이 닫힐 때 GPS 상태 초기화
+  // 모달이 닫힐 때 GPS 상태 초기화 및 채팅방 초기화
   useEffect(() => {
     if (!isOpen) {
       console.log('📍 [RegionChatModal] 모달 닫힘 - GPS 상태 초기화');
-      // useGPSLocation 훅에 reset 함수가 필요하다면 여기서 호출
+      console.log('💬 [RegionChatModal] 모달 닫힘 - 채팅방 초기화');
+      resetChat(); // 채팅방 초기화 (messages 배열 비우기)
+      resetGPSLocation(); // GPS 위치 정보 초기화
     }
-  }, [isOpen]);
+  }, [isOpen, resetChat, resetGPSLocation]);
 
   // 메시지 전송 핸들러
   const handleSendMessage = async (message: string) => {

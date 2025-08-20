@@ -112,15 +112,15 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages }) => {
                 {/* 메시지 아이템 */}
                 <div className="message-item">
                   <div className="message-profile">
-                    <img 
-                      src={message.authorProfileImg || '/images/logo.png'} 
-                      alt="프로필" 
-                      className="profile-image"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = '/images/logo.png';
-                      }}
-                    />
+                                       <img 
+                     src={message.memberProfileImg || message.authorProfileImg || '/images/logo.png'} 
+                     alt="프로필" 
+                     className="profile-image"
+                     onError={(e) => {
+                       const target = e.target as HTMLImageElement;
+                       target.src = '/images/logo.png';
+                     }}
+                   />
                   </div>
                   <div className="message-content">
                     <div className="message-header">

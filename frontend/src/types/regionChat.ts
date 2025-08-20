@@ -5,6 +5,7 @@ export interface ChatMessage {
   memberName: string;
   authorName: string;
   authorProfileImg?: string;
+  memberProfileImg?: string;
   city: string;
   createdAt: string;
   isDeleted?: boolean;

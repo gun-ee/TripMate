@@ -65,6 +65,14 @@ export const useGPSLocation = () => {
     }
   };
 
+  // GPS 위치 정보 초기화
+  const resetGPSLocation = useCallback(() => {
+    setCurrentGPSLocation(null);
+    setCurrentCity('');
+    setIsGPSLoading(false);
+    console.log('📍 [useGPSLocation] GPS 위치 정보 초기화');
+  }, []);
+
   // GPS 위치 가져오기 함수
   const getCurrentLocation = useCallback(async (): Promise<string | null> => {
     // 이미 위치를 가져온 상태라면 중복 요청 방지
@@ -148,6 +156,7 @@ export const useGPSLocation = () => {
     currentCity,
     isGPSLoading,
     getCurrentLocation,
-    getCityFromCoordinates
+    getCityFromCoordinates,
+    resetGPSLocation
   };
 };

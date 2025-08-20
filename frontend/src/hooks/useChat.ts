@@ -59,6 +59,25 @@ export const useChat = ({ city, region, currentCity }: UseChatProps) => {
     console.log('💬 [useChat] 메시지 목록 설정:', messageList.length, '개');
   }, []);
 
+  // 기존 메시지 로드
+  const loadMessages = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/region-chat/${city}/messages?page=0&size=50`);
+      if (!response.ok) {
+        throw new Error('메시지 로드 실패');
+      }
+      const data = await response.json();
+      
+      // 백엔드에서 OrderByCreatedAtDesc로 가져온 메시지를 올바른 순서로 뒤집기
+      // (오래된 메시지가 위에, 최신 메시지가 아래에 오도록)
+      const reversedMessages = [...data.content].reverse();
+      setMessageList(reversedMessages);
+      console.log('💬 [useChat] 기존 메시지 로드 완료:', reversedMessages.length, '개 (순서 조정됨)');
+    } catch (error) {
+      console.error('💬 [useChat] 메시지 로드 실패:', error);
+    }
+  }, [city, setMessageList]);
+
   // 메시지 삭제
   const deleteMessage = useCallback((messageId: number) => {
     setMessages(prev => prev.map(msg => 
@@ -99,6 +118,7 @@ export const useChat = ({ city, region, currentCity }: UseChatProps) => {
     setMessageList,
     deleteMessage,
     resetChat,
+    loadMessages,
     checkChatPermission,
     updateUserLocation
   };
