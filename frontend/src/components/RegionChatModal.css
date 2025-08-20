@@ -182,9 +182,21 @@
 /* 메시지 아이템 */
 .message-item {
   display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 12px;
   align-items: flex-start;
+}
+
+/* 내 메시지 스타일 (오른쪽 정렬) */
+.message-item.my-message {
+  justify-content: flex-end;
+  flex-direction: row-reverse;
+  margin-left: auto;
+}
+
+/* 다른 사람 메시지 스타일 (왼쪽 정렬) */
+.message-item.other-message {
+  justify-content: flex-start;
 }
 
 .message-profile {
@@ -192,8 +204,16 @@
 }
 
 .chat-profile-image {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #ddd;
+}
+
+.chat-profile-image {
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   object-fit: cover;
   background: #ddd;
@@ -220,19 +240,57 @@
 .message-time {
   color: #666;
   font-size: 12px;
+  margin-top: 4px;
+  text-align: center;
 }
+
+/* 내 메시지 시간 (버블 아래쪽, 오른쪽 정렬) */
+.my-message .message-time {
+  text-align: right;
+  margin-top: 4px;
+}
+
+
+
+/* 다른 사람 메시지 시간 (버블 아래쪽, 왼쪽 정렬) */
+.other-message .message-time {
+  text-align: left;
+  margin-top: 4px;
+}
+
+
 
 .message-bubble {
   background: white;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-radius: 18px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   word-break: break-word;
   line-height: 1.4;
   font-size: 14px;
   color: #333;
-  max-width: 80%;
+  max-width: 55%;
 }
+
+/* 내 메시지 버블 스타일 (파란색) */
+.my-message .message-bubble {
+  background: #0084ff;
+  color: white;
+  border-bottom-right-radius: 4px;
+  max-width: 55%; /* 다른 사람 메시지와 동일한 크기 */
+  margin-left: auto;
+}
+
+
+
+/* 다른 사람 메시지 버블 스타일 (회색) */
+.other-message .message-bubble {
+  background: #f0f0f0;
+  color: #333;
+  border-bottom-left-radius: 4px;
+}
+
+
 
 .deleted-message {
   color: #666;
@@ -368,3 +426,60 @@
   background: #999;
 }
 
+/* ===== PATCH: 메시지 출력 레이아웃만 수정 ===== */
+
+/* 행 폭 안전 */
+.message-item {
+  width: 100%;
+}
+
+/* 상대 메시지: 아바타 ↔ 닉네임 한 줄 배치 */
+.message-item.other-message {
+  display: grid;
+  grid-template-columns: 36px 1fr; /* avatar, content */
+  column-gap: 8px;
+  align-items: start;
+}
+
+.message-item.other-message .message-profile {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  width: 36px;
+  height: 36px;
+}
+
+.message-item.other-message .message-content {
+  grid-column: 2;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* 내가 보낸 메시지: 한 줄 전체 점유 + 내부 우측 정렬 */
+.my-message .message-content {
+  flex: 1 1 auto;                 /* ← 기존 0 1 auto에서 변경 */
+  width: calc(100% - 44px);       /* 36px(아바타) + 8px(gap) */
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+/* 버블 네 모서리 동일 반경으로 통일 */
+.message-bubble,
+.my-message .message-bubble,
+.other-message .message-bubble {
+  border-radius: 16px !important;
+}
+
+/* 내 버블을 확실히 오른쪽에 붙임 */
+.my-message .message-bubble {
+  align-self: flex-end;
+  margin-left: auto;
+}
+
+/* (선택) 시간 정렬은 기존과 동일: my-message는 우측, other-message는 좌측 */
+/* 필요 시 아래 두 줄을 유지/보강해도 무방 */
+.my-message .message-time { text-align: right; }
+.other-message .message-time { text-align: left; }

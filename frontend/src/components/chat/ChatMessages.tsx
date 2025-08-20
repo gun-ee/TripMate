@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import type { ChatMessage } from '../../types/regionChat';
 
 interface ChatMessagesProps {
@@ -6,9 +7,24 @@ interface ChatMessagesProps {
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({ messages }) => {
+  const { nickname } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+
+  // 메시지가 내가 보낸 것인지 확인
+  const isMyMessage = (message: ChatMessage): boolean => {
+    // nickname으로 내 메시지인지 판단
+    const result = nickname === message.memberName || nickname === message.authorName;
+    console.log('🔍 [ChatMessages] isMyMessage 체크:', {
+      nickname,
+      messageMemberName: message.memberName,
+      messageAuthorName: message.authorName,
+      isMyMessage: result,
+      messageContent: message.content
+    });
+    return result;
+  };
 
   // 시간 포맷팅 함수 (yyyy-MM-DD 오전/오후 hh:mm 형식)
   const formatMessageTime = (dateString: string): string => {
@@ -109,24 +125,27 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages }) => {
                   </div>
                 )}
               
-                {/* 메시지 아이템 */}
-                <div className="message-item">
-                  <div className="message-profile">
-                                       <img 
-                     src={message.memberProfileImg || message.authorProfileImg || '/images/logo.png'} 
-                     alt="프로필" 
-                     className="profile-image"
-                     onError={(e) => {
-                       const target = e.target as HTMLImageElement;
-                       target.src = '/images/logo.png';
-                     }}
-                   />
-                  </div>
-                  <div className="message-content">
-                    <div className="message-header">
-                      <span className="message-author">{message.memberName || message.authorName}</span>
-                      <span className="message-time">{formatMessageTime(message.createdAt)}</span>
+                {/* 메시지 아이템 - 카카오톡/라인 스타일 */}
+                <div className={`message-item ${isMyMessage(message) ? 'my-message' : 'other-message'}`}>
+                  {!isMyMessage(message) && (
+                    <div className="message-profile">
+                      <img 
+                        src={message.memberProfileImg || message.authorProfileImg || '/images/logo.png'} 
+                        alt="프로필" 
+                        className="chat-profile-image"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = '/images/logo.png';
+                        }}
+                      />
                     </div>
+                  )}
+                  <div className="message-content">
+                    {!isMyMessage(message) && (
+                      <div className="message-header">
+                        <span className="message-author">{message.memberName || message.authorName}</span>
+                      </div>
+                    )}
                     <div className="message-bubble">
                       {message.isDeleted ? (
                         <span className="deleted-message">① 삭제된 메시지입니다.</span>
@@ -134,7 +153,11 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages }) => {
                         message.content
                       )}
                     </div>
+                    <div className="message-time">
+                      {formatMessageTime(message.createdAt)}
+                    </div>
                   </div>
+                  {/* 내가 보낸 메시지는 프로필 이미지 없음 */}
                 </div>
               </React.Fragment>
             );
