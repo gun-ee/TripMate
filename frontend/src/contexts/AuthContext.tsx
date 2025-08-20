@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const login = async (token: string, role: string, profileImg: string, nickname: string) => {
+  const login = async (token: string, role: string, profileImg: string, nickname: string, memberId?: number) => {
     try {
       const decoded = jwtDecode(token);
       const userEmail = decoded.sub; // 토큰에서 이메일(sub) 추출
@@ -62,6 +62,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('profileImg', profileImg || '');
       localStorage.setItem('nickname', nickname || '');
       localStorage.setItem('email', userEmail); // email도 localStorage에 저장
+      if (memberId) {
+        localStorage.setItem('memberId', memberId.toString()); // memberId 저장
+      }
 
       setIsLoggedIn(true);
       setRole(role);
@@ -87,6 +90,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('profileImg', profileImg || '');
       localStorage.setItem('nickname', nickname || '');
       localStorage.setItem('email', userEmail); // email도 localStorage에 저장
+      if (id) {
+        localStorage.setItem('memberId', id); // memberId 저장
+      }
 
       setIsLoggedIn(true);
       setRole(role);
@@ -109,6 +115,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('profileImg', response.member.profileImg || '');
       localStorage.setItem('nickname', response.member.nickname || '');
       localStorage.setItem('email', response.member.email || '');
+      if (response.member.id) {
+        localStorage.setItem('memberId', response.member.id.toString()); // memberId 저장
+      }
       
       setIsLoggedIn(true);
       setIsAdmin(response.member.role === 'ADMIN');

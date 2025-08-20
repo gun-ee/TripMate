@@ -9,6 +9,7 @@ export interface ChatMessage {
   city: string;
   createdAt: string;
   isDeleted?: boolean;
+  isMine: boolean; // 메시지 생성 시점에 스탬핑
 }
 
 export interface ChatRoom {

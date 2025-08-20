@@ -50,8 +50,16 @@ const RegionChatModal: React.FC<RegionChatModalProps> = ({ isOpen, onClose, regi
            memberProfileImg: messageData.memberProfileImg || undefined,
            city: city,
            createdAt: messageData.createdAt || new Date().toISOString(),
-           isDeleted: false
+           isDeleted: false,
+           isMine: (messageData.memberId || 0) === (parseInt(localStorage.getItem('memberId') || '0') || 0) // 생성 시점에 스탬핑
          };
+        // 디버깅: isMine 계산 과정 확인
+        console.log('🔍 [RegionChatModal] WebSocket 메시지 isMine 계산:', {
+          messageMemberId: messageData.memberId || 0,
+          localStorageMemberId: parseInt(localStorage.getItem('memberId') || '0') || 0,
+          isMine: (messageData.memberId || 0) === (parseInt(localStorage.getItem('memberId') || '0') || 0),
+          chatMessage
+        });
         addMessage(chatMessage);
       }
     }

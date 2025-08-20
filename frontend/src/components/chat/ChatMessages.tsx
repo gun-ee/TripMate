@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import type { ChatMessage } from '../../types/regionChat';
 
 interface ChatMessagesProps {
@@ -7,24 +6,11 @@ interface ChatMessagesProps {
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({ messages }) => {
-  const { nickname } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
-  // 메시지가 내가 보낸 것인지 확인
-  const isMyMessage = (message: ChatMessage): boolean => {
-    // nickname으로 내 메시지인지 판단
-    const result = nickname === message.memberName || nickname === message.authorName;
-    console.log('🔍 [ChatMessages] isMyMessage 체크:', {
-      nickname,
-      messageMemberName: message.memberName,
-      messageAuthorName: message.authorName,
-      isMyMessage: result,
-      messageContent: message.content
-    });
-    return result;
-  };
+
 
   // 시간 포맷팅 함수 (yyyy-MM-DD 오전/오후 hh:mm 형식)
   const formatMessageTime = (dateString: string): string => {
@@ -81,6 +67,19 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages }) => {
     scrollToBottom();
   }, []);
 
+  // 디버깅: messages가 변경될 때마다 isMine 값 확인
+  useEffect(() => {
+    if (messages.length > 0) {
+      console.log('🔍 [ChatMessages] messages 변경됨:', messages.map(msg => ({
+        messageId: msg.id,
+        memberId: msg.memberId,
+        memberName: msg.memberName,
+        isMine: msg.isMine,
+        localStorageMemberId: localStorage.getItem('memberId')
+      })));
+    }
+  }, [messages]);
+
   return (
     <div 
       className="chat-messages" 
@@ -125,9 +124,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages }) => {
                   </div>
                 )}
               
-                {/* 메시지 아이템 - 카카오톡/라인 스타일 */}
-                <div className={`message-item ${isMyMessage(message) ? 'my-message' : 'other-message'}`}>
-                  {!isMyMessage(message) && (
+                                 {/* 메시지 아이템 - 카카오톡/라인 스타일 */}
+                 <div className={`message-item ${message.isMine ? 'my-message' : 'other-message'}`}>
+                   {!message.isMine && (
                     <div className="message-profile">
                       <img 
                         src={message.memberProfileImg || message.authorProfileImg || '/images/logo.png'} 
@@ -141,7 +140,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages }) => {
                     </div>
                   )}
                   <div className="message-content">
-                    {!isMyMessage(message) && (
+                    {!message.isMine && (
                       <div className="message-header">
                         <span className="message-author">{message.memberName || message.authorName}</span>
                       </div>

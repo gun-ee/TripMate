@@ -70,7 +70,10 @@ export const useChat = ({ city, region, currentCity }: UseChatProps) => {
       
       // 백엔드에서 OrderByCreatedAtDesc로 가져온 메시지를 올바른 순서로 뒤집기
       // (오래된 메시지가 위에, 최신 메시지가 아래에 오도록)
-      const reversedMessages = [...data.content].reverse();
+      const reversedMessages = [...data.content].reverse().map(message => ({
+        ...message,
+        isMine: (message.memberId || 0) === (parseInt(localStorage.getItem('memberId') || '0') || 0) // 생성 시점에 스탬핑
+      }));
       setMessageList(reversedMessages);
       console.log('💬 [useChat] 기존 메시지 로드 완료:', reversedMessages.length, '개 (순서 조정됨)');
     } catch (error) {
