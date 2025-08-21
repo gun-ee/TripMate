@@ -11,6 +11,9 @@ export const useChat = ({ city, region, currentCity }: UseChatProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [canChat, setCanChat] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [isLoadingPrevious, setIsLoadingPrevious] = useState(false);
 
   // 채팅 권한 확인
   const checkChatPermission = useCallback((userCity: string) => {
@@ -59,10 +62,13 @@ export const useChat = ({ city, region, currentCity }: UseChatProps) => {
     console.log('💬 [useChat] 메시지 목록 설정:', messageList.length, '개');
   }, []);
 
-  // 기존 메시지 로드
+  // 기존 메시지 로드 (초기 로드)
   const loadMessages = useCallback(async () => {
     try {
-      const response = await fetch(`/api/region-chat/${city}/messages?page=0&size=50`);
+      setCurrentPage(0);
+      setHasMoreMessages(true);
+      
+      const response = await fetch(`/api/region-chat/${city}/messages?page=0&size=20`);
       if (!response.ok) {
         throw new Error('메시지 로드 실패');
       }
@@ -74,12 +80,68 @@ export const useChat = ({ city, region, currentCity }: UseChatProps) => {
         ...message,
         isMine: (message.memberId || 0) === (parseInt(localStorage.getItem('memberId') || '0') || 0) // 생성 시점에 스탬핑
       }));
+      
       setMessageList(reversedMessages);
-      console.log('💬 [useChat] 기존 메시지 로드 완료:', reversedMessages.length, '개 (순서 조정됨)');
+      setHasMoreMessages(data.content.length === 20); // 20개 미만이면 더 이상 메시지 없음
+      console.log('💬 [useChat] 초기 메시지 로드 완료:', reversedMessages.length, '개 (순서 조정됨)');
     } catch (error) {
       console.error('💬 [useChat] 메시지 로드 실패:', error);
     }
   }, [city, setMessageList]);
+
+  // 이전 메시지 로드 (무한 스크롤)
+  const loadPreviousMessages = useCallback(async () => {
+    if (isLoadingPrevious || !hasMoreMessages) return;
+    
+    try {
+      setIsLoadingPrevious(true);
+      const nextPage = currentPage + 1;
+      
+      const response = await fetch(`/api/region-chat/${city}/messages?page=${nextPage}&size=20`);
+      if (!response.ok) {
+        throw new Error('이전 메시지 로드 실패');
+      }
+      const data = await response.json();
+      
+      if (data.content.length === 0) {
+        setHasMoreMessages(false);
+        return;
+      }
+      
+      // 새로 로드된 메시지를 기존 메시지 앞쪽에 추가
+      const newMessages = [...data.content].reverse().map(message => ({
+        ...message,
+        isMine: (message.memberId || 0) === (parseInt(localStorage.getItem('memberId') || '0') || 0)
+      }));
+      
+      // 스크롤 위치 보존을 위한 콜백 함수
+      setMessages(prev => {
+        const updatedMessages = [...newMessages, ...prev];
+        
+        // 다음 렌더링 사이클에서 스크롤 위치 조정
+        setTimeout(() => {
+          const messagesContainer = document.querySelector('.chat-messages');
+          if (messagesContainer) {
+            // 새로 추가된 메시지들의 높이만큼 스크롤 위치 조정
+            const newMessagesHeight = newMessages.length * 80; // 대략적인 메시지 높이
+            messagesContainer.scrollTop = newMessagesHeight;
+            console.log('🔄 [useChat] 스크롤 위치 보존:', newMessagesHeight, 'px만큼 조정');
+          }
+        }, 0);
+        
+        return updatedMessages;
+      });
+      
+      setCurrentPage(nextPage);
+      setHasMoreMessages(data.content.length === 20);
+      
+      console.log('💬 [useChat] 이전 메시지 로드 완료:', newMessages.length, '개 (페이지:', nextPage, ')');
+    } catch (error) {
+      console.error('💬 [useChat] 이전 메시지 로드 실패:', error);
+    } finally {
+      setIsLoadingPrevious(false);
+    }
+  }, [city, currentPage, hasMoreMessages, isLoadingPrevious]);
 
   // 메시지 삭제
   const deleteMessage = useCallback((messageId: number) => {
@@ -122,6 +184,9 @@ export const useChat = ({ city, region, currentCity }: UseChatProps) => {
     deleteMessage,
     resetChat,
     loadMessages,
+    loadPreviousMessages,
+    hasMoreMessages,
+    isLoadingPrevious,
     checkChatPermission,
     updateUserLocation
   };

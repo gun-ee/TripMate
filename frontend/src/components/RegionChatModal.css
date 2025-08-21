@@ -408,6 +408,20 @@
   }
 }
 
+/* 무한 스크롤 로딩 인디케이터 */
+.loading-indicator {
+  text-align: center;
+  padding: 16px 20px;
+  color: #666;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.loading-indicator p {
+  margin: 0;
+}
+
 /* 스크롤바 스타일링 */
 .chat-messages::-webkit-scrollbar {
   width: 4px;

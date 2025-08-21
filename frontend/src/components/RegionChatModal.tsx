@@ -64,7 +64,7 @@ const RegionChatModal: React.FC<RegionChatModalProps> = ({ isOpen, onClose, regi
       }
     }
   });
-  const { messages, canChat, addMessage, resetChat, loadMessages } = useChat({ city, region, currentCity });
+  const { messages, canChat, addMessage, resetChat, loadMessages, loadPreviousMessages, hasMoreMessages, isLoadingPrevious } = useChat({ city, region, currentCity });
 
   // 모달이 열릴 때 GPS 위치 자동 가져오기 및 기존 메시지 로드
   useEffect(() => {
@@ -140,7 +140,12 @@ const RegionChatModal: React.FC<RegionChatModalProps> = ({ isOpen, onClose, regi
         )}
 
         {/* 메시지 목록 */}
-        <ChatMessages messages={messages} />
+        <ChatMessages 
+          messages={messages} 
+          onLoadPrevious={loadPreviousMessages}
+          hasMoreMessages={hasMoreMessages}
+          isLoadingPrevious={isLoadingPrevious}
+        />
 
         {/* 메시지 입력 */}
         {isLoggedIn && (

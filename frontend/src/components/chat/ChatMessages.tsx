@@ -3,9 +3,12 @@ import type { ChatMessage } from '../../types/regionChat';
 
 interface ChatMessagesProps {
   messages: ChatMessage[];
+  onLoadPrevious?: () => void;
+  hasMoreMessages?: boolean;
+  isLoadingPrevious?: boolean;
 }
 
-const ChatMessages: React.FC<ChatMessagesProps> = ({ messages }) => {
+const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, onLoadPrevious, hasMoreMessages = false, isLoadingPrevious = false }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
@@ -49,6 +52,15 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages }) => {
     const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10; // 10px 여유
     
     setShouldAutoScroll(isAtBottom);
+    
+    // 무한 스크롤: 스크롤이 위쪽 5% 지점에 도달하면 이전 메시지 로드
+    if (onLoadPrevious && hasMoreMessages && !isLoadingPrevious) {
+      const scrollPercentage = scrollTop / (scrollHeight - clientHeight);
+      if (scrollPercentage < 0.05) {
+        console.log('🔄 [ChatMessages] 무한 스크롤 트리거: 위쪽 5% 도달');
+        onLoadPrevious();
+      }
+    }
   };
 
   // 메시지 자동 스크롤 (스마트 스크롤)
@@ -59,12 +71,25 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages }) => {
   }, [messages, shouldAutoScroll]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // 추가로 컨테이너 자체도 맨 아래로 스크롤
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   };
 
   // 컴포넌트 마운트 시 맨 아래로 스크롤
   useEffect(() => {
-    scrollToBottom();
+    // 약간의 지연을 두어 DOM이 완전히 렌더링된 후 스크롤
+    const timer = setTimeout(() => {
+      scrollToBottom();
+      console.log('🔄 [ChatMessages] 초기 스크롤: 맨 아래로 이동');
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   // 디버깅: messages가 변경될 때마다 isMine 값 확인
@@ -86,17 +111,28 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages }) => {
       ref={messagesContainerRef}
       onScroll={handleScroll}
     >
-      {messages.length === 0 ? (
-        <div className="no-messages">
-          <p>아직 메시지가 없습니다.</p>
-          <p>첫 번째 메시지를 남겨보세요!</p>
-        </div>
-      ) : (
-        <>
-          {/* 첫 날짜선을 별도로 먼저 렌더링 (테스트1 아래에 표시) */}
-          <div className="date-separator">
-            {getDateSeparatorText(messages[messages.length - 1].createdAt)}
-          </div>
+             {messages.length === 0 ? (
+         <div className="no-messages">
+           <p>아직 메시지가 없습니다.</p>
+           <p>첫 번째 메시지를 남겨보세요!</p>
+         </div>
+       ) : (
+         <>
+           {/* 무한 스크롤 로딩 인디케이터 */}
+           {hasMoreMessages && (
+             <div className="loading-indicator">
+               {isLoadingPrevious ? (
+                 <p>이전 메시지 로딩 중...</p>
+               ) : (
+                 <p>위로 스크롤하여 이전 메시지 보기</p>
+               )}
+             </div>
+           )}
+           
+           {/* 첫 날짜선을 별도로 먼저 렌더링 (테스트1 아래에 표시) */}
+           <div className="date-separator">
+             {getDateSeparatorText(messages[messages.length - 1].createdAt)}
+           </div>
           
           {/* 메시지들 렌더링 */}
           {messages.map((message, index) => {
