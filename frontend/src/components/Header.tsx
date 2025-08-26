@@ -20,7 +20,7 @@ interface MenuItem {
 const baseMenu: MenuItem[] = [
   {
     name: '여행 일정 계획',
-    link: '/board',
+    link: '/plan',
     submenu: [
       //{ name: '정보게시판', link: '/board/info' },
       //{ name: '자유게시판', link: '/board/free' },

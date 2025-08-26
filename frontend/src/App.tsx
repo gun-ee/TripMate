@@ -10,6 +10,7 @@ import OAuth2RedirectHandler from './components/OAuth2RedirectHandler';
 import OAuthRedirect from './components/OAuthRedirect';
 import TripTalk from './components/TripTalk';
 import RegionChatExample from './components/RegionChatExample';
+import TripPlanPage from './components/TripPlan';
 import './App.css';
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
               <Route path="/oauth/redirect" element={<OAuthRedirect />} />
               <Route path="/triptalk" element={<TripTalk />} />
               <Route path="/region-chat" element={<RegionChatExample />} />
+              <Route path="/plan" element={<TripPlanPage />} />
             </Routes>
           </div>
         </Router>
