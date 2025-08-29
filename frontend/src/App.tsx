@@ -11,6 +11,7 @@ import OAuthRedirect from './components/OAuthRedirect';
 import TripTalk from './components/TripTalk';
 import RegionChatExample from './components/RegionChatExample';
 import TripPlanPage from './components/TripPlan';
+import PlanPage from './components/PlanPage';
 import './App.css';
 
 function App() {
@@ -28,7 +29,7 @@ function App() {
               <Route path="/oauth/redirect" element={<OAuthRedirect />} />
               <Route path="/triptalk" element={<TripTalk />} />
               <Route path="/region-chat" element={<RegionChatExample />} />
-              <Route path="/plan" element={<TripPlanPage />} />
+              <Route path="/plan" element={<PlanPage />} />
             </Routes>
           </div>
         </Router>
