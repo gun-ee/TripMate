@@ -1,5 +1,6 @@
 // src/pages/PlanPage.tsx
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import Header from './Header';
 import {
   MapContainer,
   TileLayer,
@@ -83,6 +84,9 @@ function SetViewOnChange({ center, zoom }: { center: LatLngExpression; zoom: num
  * 페이지 컴포넌트
  * ========================= */
 export default function PlanPage() {
+  /** 0) 화면 상태 */
+  const [isPlanningStarted, setIsPlanningStarted] = useState(false);
+
   /** 1) 도시/날짜 */
   const [cityQuery, setCityQuery] = useState('서울');
   const [cityCoord, setCityCoord] = useState<[number, number] | null>(null);
@@ -118,17 +122,25 @@ export default function PlanPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** 도시 지오코딩(Nominatim) */
+  /** 도시 지오코딩(서버 경유 - CORS 회피) */
   const geocodeCity = async (q: string): Promise<[number, number] | null> => {
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`;
-      const res = await fetch(url, { headers: { 'Accept-Language': 'ko' } });
-      const arr = await res.json();
-      if (Array.isArray(arr) && arr.length) {
-        const { lat, lon } = arr[0];
-        return [parseFloat(lat), parseFloat(lon)];
+      const { data } = await axios.get<{ lat: number; lng: number }>('places/geocodeCity', { params: { q } });
+      if (typeof data?.lat === 'number' && typeof data?.lng === 'number') {
+        return [data.lat, data.lng];
       }
-    } catch {}
+    } catch (e) {
+      // 서버 실패 시 Nominatim로 폴백
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'ko', 'User-Agent': 'TripMate/1.0 (+http://localhost)' } as any });
+        const arr = await res.json();
+        if (Array.isArray(arr) && arr.length) {
+          const { lat, lon } = arr[0];
+          return [parseFloat(lat), parseFloat(lon)];
+        }
+      } catch {}
+    }
     return null;
   };
 
@@ -152,6 +164,15 @@ export default function PlanPage() {
 
   /** 계획 시작: 도시로 이동 + 일수 계산 + (자동검색은 moveend로 처리) */
   const onStartPlan = async () => {
+    if (!cityQuery.trim()) {
+      alert('여행지를 입력해주세요.');
+      return;
+    }
+    if (!startDate || !endDate) {
+      alert('여행 시작일과 종료일을 모두 입력해주세요.');
+      return;
+    }
+
     const coord = await geocodeCity(cityQuery);
     if (!coord) return alert('도시를 찾지 못했습니다.');
     setCityCoord(coord);
@@ -167,6 +188,9 @@ export default function PlanPage() {
     }
     setDays(Array.from({ length: dayCount }, () => []));
     setActiveDay(0);
+    
+    // 계획 시작 상태로 변경
+    setIsPlanningStarted(true);
   };
 
   /** 지도 이동 끝 → 자동 주변검색(쿨다운/미세이동 가드는 MapMoveWatcher에서) */
@@ -285,165 +309,216 @@ export default function PlanPage() {
    * ========================= */
   return (
     <div className="plan-page">
-      {/* 상단 바 */}
-      <div className="topbar">
-        <div className="brand">TRIPMATE</div>
-        <div className="grow" />
-        <button className="btn ghost" onClick={exportPlan}>전체 계획 출력</button>
-        <button className="btn primary" onClick={savePlan}>DB 저장</button>
-      </div>
-
-      {/* 도시/날짜/검색/설정 */}
-      <div className="plan-controls">
-        <input className="city-input" placeholder="도시(제주, 파리, 독일…)"
-               value={cityQuery} onChange={(e) => setCityQuery(e.target.value)} />
-        <div className="date-range">
-          <label>시작</label><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-          <label>종료</label><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-        </div>
-        <button className="btn" onClick={onStartPlan}>계획 시작</button>
-
-        <div className="spacer" />
-
-        <input className="keyword-input" placeholder="키워드(없으면 주변)"
-               value={keyword} onChange={(e) => setKeyword(e.target.value)} />
-        <button className="btn" onClick={() => {
-          const q = keyword.trim();
-          if (q) fetchSearch(mapLat, mapLon, q);
-          else fetchNearby(mapLat, mapLon);
-        }}>검색/주변</button>
-
-        <select className="btn" value={transport} onChange={(e) => setTransport(e.target.value as TransportMode)}>
-          <option value="driving">차량</option>
-          <option value="foot">도보</option>
-          <option value="bicycle">자전거</option>
-        </select>
-        <select className="btn" value={routeMode} onChange={(e) => setRouteMode(e.target.value as RouteMode)}>
-          <option value="lines">직선</option>
-          <option value="osrm">도로</option>
-        </select>
-      </div>
-
-      {/* 시간/일차 스위치 */}
-      <div className="timebar">
-        <div>
-          <label>일과 시작</label>
-          <input type="time" value={dayStart} onChange={(e) => setDayStart(e.target.value)} />
-          <label style={{ marginLeft: 12 }}>종료</label>
-          <input type="time" value={dayEnd} onChange={(e) => setDayEnd(e.target.value)} />
-        </div>
-        <div className="dayswitch">
-          <button className="icon-btn" onClick={() => setActiveDay(d => Math.max(0, d-1))}>◀</button>
-          <span className="day-label">{activeDay + 1}일차 / {days.length}</span>
-          <button className="icon-btn" onClick={() => setActiveDay(d => Math.min(days.length-1, d+1))}>▶</button>
-        </div>
-      </div>
-
-      {/* 본문: 지도 / 검색 / 일정 */}
-      <div className="plan-row" style={{ gridTemplateColumns: '1.2fr 1fr 1fr' }}>
-        {/* 지도 */}
-        <div className="map-wrap">
-          <MapContainer center={center} zoom={12} style={{ width: '100%', height: '100%' }} scrollWheelZoom>
-            <MapAutoResize />
-            <SetViewOnChange center={center} zoom={12} />
-            <MapMoveWatcher onMoveEnd={onMapMoveEnd} /> {/* 지도 이동 시 자동검색 */}
-
-            <TileLayer
-              attribution="&copy; OpenStreetMap contributors"
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-
-            {/* 검색 마커 */}
-            {places.map((p, idx) => {
-              const k = keyOf(p, idx);
-              const c = getCoords(p);
-              if (!c) return null;
-              return (
-                <Marker key={k} position={c as LatLngExpression}>
-                  <Popup>
-                    <b>{p.name ?? 'Unknown'}</b>
-                    {p.tags && <div style={{ marginTop: 4, fontSize: 12 }}>{p.tags}</div>}
-                    <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {[0,1,2,3,4].map(d => (
-                        <button key={d} className="chip" onClick={() => addToDay(d, p, idx)}>+ {d+1}일차</button>
-                      ))}
-                      <button className="chip" onClick={() => addToDay(activeDay, p, idx, true)}>숙소</button>
-                    </div>
-                  </Popup>
-                </Marker>
-              );
-            })}
-
-            {/* 경로 */}
-            {routeLine.length >= 2 && <Polyline positions={routeLine as LatLngExpression[]} />}
-            {routeGeo && <GeoJSON data={routeGeo} />}
-          </MapContainer>
-        </div>
-
-        {/* 검색 결과 */}
-        <div className="results-wrap">
-          <div className="results-header">검색 결과</div>
-          {loading && <div className="results-empty">로딩 중…</div>}
-          {!loading && errorMsg && <div className="results-error">{errorMsg}</div>}
-          {!loading && !errorMsg && places.length === 0 && <div className="results-empty">데이터가 없습니다.</div>}
-          {!loading && !errorMsg && places.length > 0 && (
-            <div className="results-list">
-              {places.map((p, idx) => {
-                const k = keyOf(p, idx);
-                return (
-                  <div key={k} className="place-item">
-                    <div className="place-title">{p.name ?? 'Unknown'}</div>
-                    {p.tags && <div className="place-tags">{p.tags}</div>}
-                    <div className="place-actions">
-                      {[1,2,3,4,5].map(d => (
-                        <button key={d} className="chip" onClick={() => addToDay(d-1, p, idx)}>+ {d}일차</button>
-                      ))}
-                      <button className="chip" onClick={() => addToDay(activeDay, p, idx, true)}>숙소</button>
-                    </div>
-                  </div>
-                );
-              })}
+      <Header />
+      
+      {!isPlanningStarted ? (
+        /* 여행지/날짜 입력 화면 */
+        <div className="plan-input-section">
+          <div className="plan-input-header">
+            <h1>여행 계획 시작하기</h1>
+            <p>어디로 떠나시나요? 날짜를 선택하고 계획을 시작하세요.</p>
+          </div>
+          
+          <div className="plan-input-form">
+            <div className="input-group">
+              <label>여행지</label>
+              <input 
+                className="city-input" 
+                placeholder="도시(제주, 파리, 독일…)"
+                value={cityQuery} 
+                onChange={(e) => setCityQuery(e.target.value)} 
+              />
             </div>
-          )}
+            
+            <div className="date-inputs">
+              <div className="input-group">
+                <label>시작일</label>
+                <input 
+                  type="date" 
+                  value={startDate} 
+                  onChange={(e) => setStartDate(e.target.value)} 
+                />
+              </div>
+              <div className="input-group">
+                <label>종료일</label>
+                <input 
+                  type="date" 
+                  value={endDate} 
+                  onChange={(e) => setEndDate(e.target.value)} 
+                />
+              </div>
+            </div>
+            
+            <button className="start-plan-btn" onClick={onStartPlan}>
+              여행 계획 시작하기
+            </button>
+          </div>
         </div>
+      ) : (
+        /* 기존 여행계획짜기 화면 */
+        <>
+          {/* 상단 바 */}
+          <div className="topbar">
+            <div className="brand">TRIPMATE</div>
+            <div className="grow" />
+            <button className="btn ghost" onClick={() => setIsPlanningStarted(false)}>처음으로</button>
+            <button className="btn ghost" onClick={exportPlan}>전체 계획 출력</button>
+            <button className="btn primary" onClick={savePlan}>DB 저장</button>
+          </div>
 
-        {/* 일정 패널 */}
-        <div className="results-wrap">
-          <div className="results-header">일정 (Day {activeDay + 1})</div>
-          {(days[activeDay] ?? []).length === 0 ? (
-            <div className="results-empty">선택된 장소가 없습니다.</div>
-          ) : (
-            <div className="results-list">
-              {(days[activeDay] ?? []).map((s, i) => (
-                <div key={`${s.id}:${i}`} className="place-item">
-                  <div className="place-title">
-                    {i + 1}. {s.name} {s.isLodging && <span className="badge">숙소</span>}
-                  </div>
-                  <div className="place-tags">
-                    체류 {s.durationMin}분 / 도착 {HHMM(timetable[i]?.arrive ?? 0)} ~ 출발 {HHMM(timetable[i]?.depart ?? 0)}
-                  </div>
-                  <div className="place-actions">
-                    <button className="chip" onClick={() => reorder(activeDay, i, -1)}>▲</button>
-                    <button className="chip" onClick={() => reorder(activeDay, i, 1)}>▼</button>
-                    <button className="chip" onClick={() => markAsLodging(activeDay, i)}>숙소</button>
-                    <button className="chip" onClick={() => setDuration(activeDay, i, s.durationMin + 30)}>+30m</button>
-                    <button className="chip" onClick={() => setDuration(activeDay, i, Math.max(0, s.durationMin - 30))}>-30m</button>
-                    <button className="chip" onClick={() => removeStop(activeDay, i)}>삭제</button>
-                  </div>
+          {/* 도시/날짜/검색/설정 */}
+          <div className="plan-controls">
+            <input className="city-input" placeholder="도시(제주, 파리, 독일…)"
+                   value={cityQuery} onChange={(e) => setCityQuery(e.target.value)} />
+            <div className="date-range">
+              <label>시작</label><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <label>종료</label><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            </div>
+            <button className="btn" onClick={onStartPlan}>계획 시작</button>
+
+            <div className="spacer" />
+
+            <input className="keyword-input" placeholder="키워드(없으면 주변)"
+                   value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+            <button className="btn" onClick={() => {
+              const q = keyword.trim();
+              if (q) fetchSearch(mapLat, mapLon, q);
+              else fetchNearby(mapLat, mapLon);
+            }}>검색/주변</button>
+
+            <select className="btn" value={transport} onChange={(e) => setTransport(e.target.value as TransportMode)}>
+              <option value="driving">차량</option>
+              <option value="foot">도보</option>
+              <option value="bicycle">자전거</option>
+            </select>
+            <select className="btn" value={routeMode} onChange={(e) => setRouteMode(e.target.value as RouteMode)}>
+              <option value="lines">직선</option>
+              <option value="osrm">도로</option>
+            </select>
+          </div>
+
+          {/* 시간/일차 스위치 */}
+          <div className="timebar">
+            <div>
+              <label>일과 시작</label>
+              <input type="time" value={dayStart} onChange={(e) => setDayStart(e.target.value)} />
+              <label style={{ marginLeft: 12 }}>종료</label>
+              <input type="time" value={dayEnd} onChange={(e) => setDayEnd(e.target.value)} />
+            </div>
+            <div className="dayswitch">
+              <button className="icon-btn" onClick={() => setActiveDay(d => Math.max(0, d-1))}>◀</button>
+              <span className="day-label">{activeDay + 1}일차 / {days.length}</span>
+              <button className="icon-btn" onClick={() => setActiveDay(d => Math.min(days.length-1, d+1))}>▶</button>
+            </div>
+          </div>
+
+          {/* 본문: 지도 / 검색 / 일정 */}
+          <div className="plan-row" style={{ gridTemplateColumns: '1.2fr 1fr 1fr' }}>
+            {/* 지도 */}
+            <div className="map-wrap">
+              <MapContainer center={center} zoom={12} style={{ width: '100%', height: '100%' }} scrollWheelZoom>
+                <MapAutoResize />
+                <SetViewOnChange center={center} zoom={12} />
+                <MapMoveWatcher onMoveEnd={onMapMoveEnd} /> {/* 지도 이동 시 자동검색 */}
+
+                <TileLayer
+                  attribution="&copy; OpenStreetMap contributors"
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+
+                {/* 검색 마커 */}
+                {places.map((p, idx) => {
+                  const k = keyOf(p, idx);
+                  const c = getCoords(p);
+                  if (!c) return null;
+                  return (
+                    <Marker key={k} position={c as LatLngExpression}>
+                      <Popup>
+                        <b>{p.name ?? 'Unknown'}</b>
+                        {p.tags && <div style={{ marginTop: 4, fontSize: 12 }}>{p.tags}</div>}
+                        <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {[0,1,2,3,4].map(d => (
+                            <button key={d} className="chip" onClick={() => addToDay(d, p, idx)}>+ {d+1}일차</button>
+                          ))}
+                          <button className="chip" onClick={() => addToDay(activeDay, p, idx, true)}>숙소</button>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
+                })}
+
+                {/* 경로 */}
+                {routeLine.length >= 2 && <Polyline positions={routeLine as LatLngExpression[]} />}
+                {routeGeo && <GeoJSON data={routeGeo} />}
+              </MapContainer>
+            </div>
+
+            {/* 검색 결과 */}
+            <div className="results-wrap">
+              <div className="results-header">검색 결과</div>
+              {loading && <div className="results-empty">로딩 중…</div>}
+              {!loading && errorMsg && <div className="results-error">{errorMsg}</div>}
+              {!loading && !errorMsg && places.length === 0 && <div className="results-empty">데이터가 없습니다.</div>}
+              {!loading && !errorMsg && places.length > 0 && (
+                <div className="results-list">
+                  {places.map((p, idx) => {
+                    const k = keyOf(p, idx);
+                    return (
+                      <div key={k} className="place-item">
+                        <div className="place-title">{p.name ?? 'Unknown'}</div>
+                        {p.tags && <div className="place-tags">{p.tags}</div>}
+                        <div className="place-actions">
+                          {[1,2,3,4,5].map(d => (
+                            <button key={d} className="chip" onClick={() => addToDay(d-1, p, idx)}>+ {d}일차</button>
+                          ))}
+                          <button className="chip" onClick={() => addToDay(activeDay, p, idx, true)}>숙소</button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
+              )}
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* 하단 */}
-      <div className="plan-footer">
-        <div className="hint">교통수단: {transport} / 경로: {routeMode}</div>
-        <div className="grow" />
-        <button className="btn ghost" onClick={exportPlan}>전체 계획 출력</button>
-        <button className="btn primary" onClick={savePlan}>여행계획 저장</button>
-      </div>
+            {/* 일정 패널 */}
+            <div className="results-wrap">
+              <div className="results-header">일정 (Day {activeDay + 1})</div>
+              {(days[activeDay] ?? []).length === 0 ? (
+                <div className="results-empty">선택된 장소가 없습니다.</div>
+              ) : (
+                <div className="results-list">
+                  {(days[activeDay] ?? []).map((s, i) => (
+                    <div key={`${s.id}:${i}`} className="place-item">
+                      <div className="place-title">
+                        {i + 1}. {s.name} {s.isLodging && <span className="badge">숙소</span>}
+                      </div>
+                      <div className="place-tags">
+                        체류 {s.durationMin}분 / 도착 {HHMM(timetable[i]?.arrive ?? 0)} ~ 출발 {HHMM(timetable[i]?.depart ?? 0)}
+                      </div>
+                      <div className="place-actions">
+                        <button className="chip" onClick={() => reorder(activeDay, i, -1)}>▲</button>
+                        <button className="chip" onClick={() => reorder(activeDay, i, 1)}>▼</button>
+                        <button className="chip" onClick={() => markAsLodging(activeDay, i)}>숙소</button>
+                        <button className="chip" onClick={() => setDuration(activeDay, i, s.durationMin + 30)}>+30m</button>
+                        <button className="chip" onClick={() => setDuration(activeDay, i, Math.max(0, s.durationMin - 30))}>-30m</button>
+                        <button className="chip" onClick={() => removeStop(activeDay, i)}>삭제</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 하단 */}
+          <div className="plan-footer">
+            <div className="hint">교통수단: {transport} / 경로: {routeMode}</div>
+            <div className="grow" />
+            <button className="btn ghost" onClick={exportPlan}>전체 계획 출력</button>
+            <button className="btn primary" onClick={savePlan}>여행계획 저장</button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
