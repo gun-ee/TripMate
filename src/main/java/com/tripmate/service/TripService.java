@@ -403,6 +403,18 @@ public class TripService {
         tripRepo.save(trip);
     }
 
+    @Transactional
+    public void updateItemStayMin(Long itemId, Integer min) {
+        TripItem item = itemRepo.findById(itemId).orElseThrow();
+        item.setStayMin(min);
+        itemRepo.save(item);
+        // 해당 일차의 레그만 재계산(도착/출발 시각은 클라이언트 스케줄러에서 보임)
+        TripDay day = item.getTripDay();
+        legRepo.deleteByTripDay(day);
+        createTripLegs(day);
+        calculateTripLegs(day);
+    }
+
     @Transactional(readOnly = true)
     public TripEditView getEditView(Long tripId) {
         Trip trip = tripRepo.findById(tripId).orElseThrow();

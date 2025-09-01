@@ -92,4 +92,10 @@ public class TripController {
     public void updateTimezone(@PathVariable Long tripId, @RequestParam String tz) {
         svc.updateTimeZone(tripId, tz);
     }
+
+    // 장소(아이템) 체류시간(min) 수정
+    @PutMapping("/items/{itemId}/stay")
+    public void updateItemStay(@PathVariable Long itemId, @RequestParam Integer min) {
+        svc.updateItemStayMin(itemId, min);
+    }
 }

@@ -2,13 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from '../api/axios';
 import Header from './Header';
 import './TripPlan.css';
+import './TripEdit.css';
 import { MapContainer, TileLayer, Marker, Polyline, GeoJSON } from 'react-leaflet';
 import type { LatLngExpression } from 'leaflet';
 
 type Day = {
   id: number; dayIndex: number; date: string; startTime: string; endTime: string;
   items: Array<{ id: number; sortOrder: number; nameSnapshot: string; stayMin?: number; lat: number; lng: number; }>
-  legs?: Array<{ id: number; distanceM?: number; durationSec?: number; routePolyline?: string | null }>;
+  legs?: Array<{ id: number; fromItemId: number; toItemId: number; distanceM?: number; durationSec?: number; routePolyline?: string | null }>;
 };
 type TripEditView = {
   id: number; title: string; city: string; startDate: string; endDate: string;
@@ -21,6 +22,36 @@ export default function TripEditPage() {
   const [localDays, setLocalDays] = useState<Day[]>([]);
   const [history, setHistory] = useState<Day[][]>([]);
   const [future, setFuture] = useState<Day[][]>([]);
+
+  const timetable = useMemo(() => {
+    const d = localDays[active];
+    if (!d) return [] as Array<{arrive: string; depart: string; travelMin: number}>;
+    const start = d.startTime?.slice(0,5) || '09:00';
+    const end = d.endTime?.slice(0,5) || '18:00';
+    const toMinutes = (s: string) => { const [h,m]=s.split(':').map(x=>parseInt(x,10)); return h*60+(m||0); };
+    const toHHMM = (m: number) => { const h=Math.floor(m/60), mm=m%60; return `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`; };
+    const legs = d.legs ?? [];
+    const legMap = new Map<string, number>();
+    legs.forEach(l => { if (l.fromItemId && l.toItemId) legMap.set(`${l.fromItemId}->${l.toItemId}`, Math.max(0, Math.round((l.durationSec||0)/60))); });
+    let t = toMinutes(start);
+    const endMin = toMinutes(end);
+    const out: Array<{arrive: string; depart: string; travelMin: number}> = [];
+    d.items.forEach((it, idx) => {
+      let travel = 0;
+      if (idx>0) {
+        const prev = d.items[idx-1];
+        travel = legMap.get(`${prev.id}->${it.id}`) ?? 0;
+        t += travel;
+      }
+      const arrive = t;
+      const stay = Math.max(0, it.stayMin ?? 60);
+      let depart = arrive + stay;
+      if (depart > endMin) depart = endMin;
+      out.push({ arrive: toHHMM(arrive), depart: toHHMM(depart), travelMin: travel });
+      t = depart;
+    });
+    return out;
+  }, [localDays, active]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -91,6 +122,11 @@ export default function TripEditPage() {
         <div className="results-wrap">
           <div className="results-header">일정 (Day {trip.days[active]?.dayIndex})</div>
           <div className="results-list">
+            <div className="day-header">
+              <div className="day-title">{trip.days[active]?.dayIndex}일차</div>
+              <div className="day-date">{trip.days[active]?.date}</div>
+              <div className="day-range">{trip.days[active]?.startTime?.slice(0,5)} ~ {trip.days[active]?.endTime?.slice(0,5)}</div>
+            </div>
             <div className="place-item">
               <div className="place-actions" style={{gap:8}}>
                 <label>시작</label>
@@ -109,10 +145,24 @@ export default function TripEditPage() {
                 }}>시간 저장/재계산</button>
               </div>
             </div>
+            <div className="timeline">
             {(localDays[active]?.items ?? []).map((it, i) => (
-              <div key={it.id} className="place-item" style={{marginLeft:12}}>
-                <div className="place-title">{i+1}. {it.nameSnapshot}</div>
-                <div className="place-actions">
+              <div key={it.id} className="tl-item">
+                <div className="tl-time">
+                  <div className="arrive">{timetable[i]?.arrive ?? '--:--'}</div>
+                  <div className="depart">{timetable[i]?.depart ?? '--:--'}</div>
+                </div>
+                <div className="tl-axis">
+                  <div className="tl-dot">{i+1}</div>
+                  {i < (localDays[active]?.items.length ?? 1) - 1 && (
+                    <div className="tl-line" />
+                  )}
+                </div>
+                <div className="tl-card">
+                  <div className="place-title">{it.nameSnapshot}</div>
+                  {i>0 && <div className="meta">🚗 이동 {timetable[i]?.travelMin ?? 0}분</div>}
+                  <div className="meta">체류 {(it.stayMin ?? 60)}분</div>
+                  <div className="actions">
                   <button className="chip" onClick={() => {
                     setHistory(h => [...h, localDays.map(d => ({...d, items: [...d.items]}))]);
                     setFuture([]);
@@ -129,10 +179,23 @@ export default function TripEditPage() {
                       if (i >= arr.length-1) return prev; [arr[i+1], arr[i]] = [arr[i], arr[i+1]]; next[active] = { ...next[active], items: arr } as Day; return next;
                     });
                   }}>▼</button>
+                  <span style={{marginLeft:8}}>체류</span>
+                  <input type="number" defaultValue={it.stayMin ?? 60} min={0} id={`stay-${it.id}`} style={{width:70}} />
+                  <span>분</span>
+                  <button className="chip" onClick={async () => {
+                    const id = new URLSearchParams(location.search).get('id');
+                    if (!id) return;
+                    const v = Number((document.getElementById(`stay-${it.id}`) as HTMLInputElement).value || 0);
+                    await axios.put(`/trips/items/${it.id}/stay`, null, { params: { min: v } });
+                    const { data } = await axios.get<TripEditView>(`/trips/${id}/edit-view`);
+                    setTrip(data); setLocalDays(data.days);
+                  }}>저장</button>
+                  </div>
+                  <div className="timebar">도착 {timetable[i]?.arrive ?? '--:--'} • 출발 {timetable[i]?.depart ?? '--:--'}</div>
                 </div>
-                <div className="place-tags">체류 {it.stayMin ?? 60}분</div>
               </div>
             ))}
+            </div>
             <div className="place-actions" style={{marginTop:12, gap:8}}>
               <button className="btn primary" onClick={async () => {
                 const id = new URLSearchParams(location.search).get('id');
