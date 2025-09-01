@@ -44,6 +44,7 @@ public class SecurityConfig {
                     .requestMatchers("/api/members/signup", "/api/members/login", "/api/members/find-id", "/api/members/reset-password", "/api/members/public/**").permitAll()
                     .requestMatchers("/api/members/me", "/api/members/**").authenticated() // 순서 중요
                     .requestMatchers("/api/boards/**").authenticated()
+                    .requestMatchers("/api/trips/**").authenticated() // trips API 인증 요구
                     .requestMatchers("/ws/**", "/sockjs-node/**").permitAll() // 웹소켓은 Spring Security 제외, 자체 인증 사용
                     .anyRequest().permitAll()
             )

@@ -8,7 +8,10 @@ import java.time.LocalDateTime;
 @Table(
     name = "trip_item",
     indexes = {
-        @Index(name = "idx_trip_day_order", columnList = "trip_id, dayIndex, sortOrder")
+        @Index(name = "idx_trip_day_order", columnList = "tripDayId, sortOrder")
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_trip_item_order", columnNames = {"tripDayId", "sortOrder"})
     }
 )
 @Getter @Setter
@@ -20,14 +23,11 @@ public class TripItem {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "trip_id", nullable = false)
-    private Trip trip;
+    @JoinColumn(name = "tripDayId", nullable = false)
+    private TripDay tripDay;
 
     @Column(nullable = false)
-    private Integer dayIndex;
-
-    @Column(nullable = false)
-    private Integer sortOrder;
+    private Integer sortOrder; // 일자 내 순서
 
     @Column(nullable = false)
     private String type; // place|memo|transfer|lodging
@@ -67,4 +67,7 @@ public class TripItem {
     // optional open/close time in "HH:mm"
     private String openTime;
     private String closeTime;
+
+    @Version
+    private Long version;
 }

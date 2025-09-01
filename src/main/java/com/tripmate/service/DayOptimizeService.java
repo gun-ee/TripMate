@@ -2,7 +2,7 @@ package com.tripmate.service;
 
 import com.tripmate.dto.DayOptimizeRequest;
 import com.tripmate.dto.DayOptimizeResponse;
-import com.tripmate.service.RouteService; // RouteService를 다른 패키지로 옮기셨다면 여기 import만 맞춰주세요.
+import com.tripmate.service.RouteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

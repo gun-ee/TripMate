@@ -1,5 +1,7 @@
 // src/pages/PlanPage.tsx
+
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import type { GeoJsonObject } from 'geojson';
 import Header from './Header';
 import {
   MapContainer,
@@ -75,7 +77,7 @@ const HHMM = (mins: number) => {
 function SetViewOnChange({ center, zoom }: { center: LatLngExpression; zoom: number }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center as any, zoom, { animate: true });
+    map.setView(center as LatLngExpression, zoom, { animate: true });
   }, [map, center, zoom]);
   return null;
 }
@@ -97,8 +99,8 @@ export default function PlanPage() {
   const [center, setCenter] = useState<LatLngExpression>(DEFAULT_CENTER);
   const [keyword, setKeyword] = useState<string>('');
   const [places, setPlaces] = useState<Place[]>([]);
-  const [limit, setLimit] = useState<number>(60);
-  const [rate, setRate] = useState<number>(1);
+  const [limit] = useState<number>(60);
+  const [rate] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
 
@@ -107,7 +109,7 @@ export default function PlanPage() {
   const [activeDay, setActiveDay] = useState(0);
   const [routeMode, setRouteMode] = useState<RouteMode>('lines');
   const [transport, setTransport] = useState<TransportMode>('driving');
-  const [routeGeo, setRouteGeo] = useState<any | null>(null);
+  const [routeGeo, setRouteGeo] = useState<GeoJsonObject | null>(null);
   const [routeLine, setRouteLine] = useState<[number, number][]>([]);
 
   const mapLat = useMemo(() => (Array.isArray(center) ? Number(center[0]) : 0), [center]);
@@ -129,17 +131,17 @@ export default function PlanPage() {
       if (typeof data?.lat === 'number' && typeof data?.lng === 'number') {
         return [data.lat, data.lng];
       }
-    } catch (e) {
+    } catch {
       // 서버 실패 시 Nominatim로 폴백
       try {
         const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`;
-        const res = await fetch(url, { headers: { 'Accept-Language': 'ko', 'User-Agent': 'TripMate/1.0 (+http://localhost)' } as any });
+        const res = await fetch(url, { headers: { 'Accept-Language': 'ko', 'User-Agent': 'TripMate/1.0 (+http://localhost)' } as Record<string, string> });
         const arr = await res.json();
         if (Array.isArray(arr) && arr.length) {
           const { lat, lon } = arr[0];
           return [parseFloat(lat), parseFloat(lon)];
         }
-      } catch {}
+      } catch { /* noop */ }
     }
     return null;
   };
@@ -150,7 +152,7 @@ export default function PlanPage() {
     try {
       const { data } = await axios.get<Place[]>('places/nearby', { params: { lat, lon, limit, rate } });
       setPlaces(Array.isArray(data) ? data : []);
-    } catch (e) { setErrorMsg('주변 장소 조회 중 오류가 발생했습니다.'); }
+    } catch { setErrorMsg('주변 장소 조회 중 오류가 발생했습니다.'); }
     finally { setLoading(false); }
   };
   const fetchSearch = async (lat: number, lon: number, q: string) => {
@@ -158,7 +160,7 @@ export default function PlanPage() {
     try {
       const { data } = await axios.get<Place[]>('places/search', { params: { q, lat, lon, limit, rate } });
       setPlaces(Array.isArray(data) ? data : []);
-    } catch (e) { setErrorMsg('검색 처리 중 오류가 발생했습니다.'); }
+    } catch { setErrorMsg('검색 처리 중 오류가 발생했습니다.'); }
     finally { setLoading(false); }
   };
 
@@ -264,7 +266,7 @@ export default function PlanPage() {
       (async () => {
         try {
           const geom = await fetchOsrmRoute(list);
-          if (geom) { setRouteGeo({ type: 'Feature', geometry: geom }); setRouteLine([]); }
+          if (geom) { setRouteGeo({ type: 'Feature', properties: {}, geometry: geom } as unknown as GeoJsonObject); setRouteLine([]); }
           else { setRouteGeo(null); setRouteLine(buildStraightLine(list)); }
         } catch {
           setRouteGeo(null); setRouteLine(buildStraightLine(list));
@@ -297,11 +299,145 @@ export default function PlanPage() {
     navigator.clipboard?.writeText(txt).catch(() => {});
     alert('콘솔에 출력했고, 클립보드에도 복사 시도했습니다.');
   };
+
+  // 특정 일차에 추가된 장소들을 API 저장 포맷으로 변환
+  type CreateTripItemRequest = {
+    sortOrder: number;
+    type: string;
+    placeSource?: string;
+    placeRef?: string;
+    nameSnapshot: string;
+    lat: number;
+    lng: number;
+    addrSnapshot?: string | null;
+    categorySnapshot?: string | null;
+    photoUrlSnapshot?: string | null;
+    snapshot?: string; // raw json
+    stayMin?: number;
+    notes?: string | null;
+    openTime?: string | null;
+    closeTime?: string | null;
+  };
+
+  const getDayItems = (dayIndex: number): CreateTripItemRequest[] => {
+    const list = days[dayIndex - 1] ?? [];
+    return list.map((s, i) => ({
+      sortOrder: i + 1,
+      type: 'place',
+      placeSource: 'custom',
+      placeRef: String(s.id ?? ''),
+      nameSnapshot: s.name,
+      lat: s.lat,
+      lng: s.lon,
+      stayMin: s.durationMin,
+      notes: s.isLodging ? '숙소' : undefined,
+      snapshot: JSON.stringify({ id: s.id, name: s.name, lat: s.lat, lon: s.lon, tags: s.tags, isLodging: s.isLodging })
+    }));
+  };
+
+  const formatDateOffset = (base: string, offsetDays: number) => {
+    const d = new Date(base);
+    d.setDate(d.getDate() + offsetDays);
+    return d.toISOString().split('T')[0];
+  };
+
+  // 현재 일차 최적화 (백엔드 TSP/스케줄러 호출 → 순서 재배치)
+  type DayOptimizeResponse = {
+    order: number[];
+  };
+  const optimizeActiveDay = async () => {
+    const list = days[activeDay] ?? [];
+    if (list.length < 2) return;
+
+    const mode = (transport === 'foot') ? 'WALK' : 'CAR';
+    // 임시 ID(1..n)를 매겨서 서버 응답의 order를 인덱스로 사용
+    const stops = list.map((s, idx) => ({
+      id: idx + 1,
+      lat: s.lat,
+      lng: s.lon,
+      stayMin: s.durationMin,
+      open: null as unknown as string | null,
+      close: null as unknown as string | null,
+      locked: !!s.isLodging,
+    }));
+
+    try {
+      const { data } = await axios.post<DayOptimizeResponse>('optimize/day', {
+        mode,
+        startTime: dayStart,
+        endTime: dayEnd,
+        startId: null,
+        endId: null,
+        stops,
+      });
+      const order = Array.isArray(data?.order) ? data.order : [];
+      if (order.length !== list.length) return;
+      const byTmpId = (id: number) => list[id - 1];
+      const reordered = order.map(byTmpId);
+      setDays(prev => {
+        const next = [...prev];
+        next[activeDay] = reordered;
+        return next;
+      });
+    } catch (e) {
+      console.error(e);
+      alert('최적화 중 오류가 발생했습니다.');
+    }
+  };
+
   const savePlan = async () => {
     try {
-      await axios.post('plan', { city: cityQuery, cityCoord, startDate, endDate, routeMode, transport, dayStart, dayEnd, days });
+      // JWT 토큰 가져오기
+      const token = localStorage.getItem('accessToken');
+      
+      if (!token) {
+        alert('로그인이 필요합니다.');
+        return;
+      }
+      
+              // 여행 일정 데이터 구성 - 실제 사용자가 선택한 장소들로 구성
+        const tripData = {
+            title: `${cityQuery} 여행`,
+            startDate,
+            endDate,
+            city: cityQuery,
+            cityLat: cityCoord?.[0],
+            cityLng: cityCoord?.[1],
+            defaultStartTime: '09:00',
+            defaultEndTime: '18:00',
+            defaultTransportMode: 'CAR',
+            days: Array.from({ length: days.length }, (_, i) => ({
+              dayIndex: i + 1,
+              date: formatDateOffset(startDate, i),
+              startTime: dayStart,
+              endTime: dayEnd,
+              items: getDayItems(i + 1)
+            }))
+        };
+        
+        const { data } = await axios.post('/trips', tripData, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+      
+      // 저장 직후 편집 화면으로 이동
+      const id = (data && (data as { id?: number }).id) || null;
+      if (id) {
+        window.location.href = `/trip/edit?id=${id}`;
+        return;
+      }
       alert('저장 완료');
-    } catch (e) { console.error(e); alert('저장 실패'); }
+    } catch (e: unknown) { 
+      console.error(e);
+      // 타입 단언 최소화
+      const resp = (e as { response?: { status?: number } } | undefined)?.response;
+      if (resp?.status === 401) {
+        alert('인증이 필요합니다. 다시 로그인해주세요.');
+      } else {
+        alert('저장 실패');
+      }
+    }
   };
 
   /* =========================
@@ -515,6 +651,7 @@ export default function PlanPage() {
             <div className="hint">교통수단: {transport} / 경로: {routeMode}</div>
             <div className="grow" />
             <button className="btn ghost" onClick={exportPlan}>전체 계획 출력</button>
+            <button className="btn" onClick={optimizeActiveDay}>현재 일차 최적화</button>
             <button className="btn primary" onClick={savePlan}>여행계획 저장</button>
           </div>
         </>
