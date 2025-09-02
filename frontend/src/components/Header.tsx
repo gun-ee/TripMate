@@ -84,6 +84,11 @@ const Header: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const menu = useMemo(() => {
+    if (!isLoggedIn) {
+      // 로그인하지 않은 사용자는 마이페이지를 제외한 메뉴만 표시
+      return baseMenu.filter(item => item.name !== '마이페이지');
+    }
+    
     if (isAdmin) {
       // 관리자일 경우, '마이페이지'를 '관리 페이지'로 교체한 새 배열을 반환
       return baseMenu.map((item) =>
@@ -94,7 +99,7 @@ const Header: React.FC = () => {
     }
     // 일반 사용자는 기존 메뉴를 그대로 반환
     return baseMenu;
-  }, [isAdmin]); // isAdmin 값이 바뀔 때만 이 로직이 다시 실행됩니다.
+  }, [isLoggedIn, isAdmin]); // isLoggedIn과 isAdmin 값이 바뀔 때만 이 로직이 다시 실행됩니다.
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
