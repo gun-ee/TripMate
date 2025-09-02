@@ -186,6 +186,7 @@ public class PostService {
                 .title(post.getTitle())
                 .content(post.getContent())
                 .imageUrl(post.getImageUrl())
+                .authorId(post.getAuthor().getId())
                 .authorName(post.getAuthor().getNickname()) // username 대신 nickname 사용
                 .authorProfileImg(post.getAuthor().getProfileImg())
                 .region(post.getRegion())

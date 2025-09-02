@@ -19,6 +19,7 @@ public class PostListResponse {
     private String title;
     private String content;
     private String imageUrl;
+    private Long authorId;
     private String authorName;
     private String authorProfileImg;
     private String region;

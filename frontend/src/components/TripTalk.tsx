@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { FaHeart, FaComment, FaClock, FaChevronLeft, FaChevronRight, FaPause, FaPlay } from 'react-icons/fa';
+import { FaHeart, FaComment, FaClock, FaChevronLeft, FaChevronRight, FaPause, FaPlay, FaUserPlus, FaUserCheck } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { usePostContext, type Post } from '../contexts/PostContext';
 import axiosInstance from '../api/axios';
+import { followApi } from '../api/follow';
 import Header from './Header';
 import PostDetailModal from './PostDetailModal';
 import RegionChatModal from './RegionChatModal';
@@ -30,6 +31,7 @@ const TripTalk: React.FC = () => {
 
   const [profileImg, setProfileImg] = useState<string>('');
   const [nickname, setNickname] = useState<string>('');
+  const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
   const [showOnlyTraveling, setShowOnlyTraveling] = useState<boolean>(false);
   const [newPost, setNewPost] = useState({
     title: '',
@@ -48,6 +50,9 @@ const TripTalk: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // 팔로우 상태 관리
+  const [followStatus, setFollowStatus] = useState<Map<number, boolean>>(new Map());
   const [postsPerPage] = useState<number>(10);
 
   // 날씨 관련 상태 수정 - 4개 도시 지원
@@ -178,6 +183,9 @@ const TripTalk: React.FC = () => {
         }
         if (response.data.nickname) {
           setNickname(response.data.nickname);
+        }
+        if (response.data.id) {
+          setCurrentMemberId(response.data.id);
         }
       } catch (error) {
         console.error('🔄 [TripTalk] 사용자 정보 가져오기 실패:', error);
@@ -319,6 +327,28 @@ const TripTalk: React.FC = () => {
   const handlePostClick = (post: Post) => {
     setSelectedPost(post);
     setIsModalOpen(true);
+  };
+
+  // 팔로우/언팔로우 핸들러
+  const handleFollowClick = async (e: React.MouseEvent, authorId: number) => {
+    e.stopPropagation(); // 게시글 클릭 이벤트 방지
+    
+    try {
+      const isCurrentlyFollowing = followStatus.get(authorId);
+      
+      if (isCurrentlyFollowing) {
+        // 언팔로우
+        await followApi.unfollow(authorId);
+        setFollowStatus(prev => new Map(prev.set(authorId, false)));
+      } else {
+        // 팔로우
+        await followApi.follow(authorId);
+        setFollowStatus(prev => new Map(prev.set(authorId, true)));
+      }
+    } catch (error) {
+      console.error('팔로우/언팔로우 실패:', error);
+      alert('팔로우/언팔로우에 실패했습니다.');
+    }
   };
 
   // 모달 닫기
@@ -565,17 +595,17 @@ const TripTalk: React.FC = () => {
                 style={{ cursor: 'pointer' }}
               >
                 <div className="post-header">
-                                  <img
-                  src={post.authorProfileImg ? `http://localhost:80${post.authorProfileImg}` : '/images/logo.png'}
-                  alt="프로필"
-                  className="author-avatar"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    if (target.src !== '/images/logo.png') {
-                      target.src = '/images/logo.png';
-                    }
-                  }}
-                />
+                  <img
+                    src={post.authorProfileImg ? `http://localhost:80${post.authorProfileImg}` : '/images/logo.png'}
+                    alt="프로필"
+                    className="author-avatar"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      if (target.src !== '/images/logo.png') {
+                        target.src = '/images/logo.png';
+                      }
+                    }}
+                  />
                   <div className="author-info">
                     <span className="author-name">{post.authorName}</span>
                     <div className="post-meta">
@@ -584,7 +614,25 @@ const TripTalk: React.FC = () => {
                       </span>
                     </div>
                   </div>
-
+                  {post.authorId !== currentMemberId && (
+                    <button 
+                      className={`follow-btn ${followStatus.get(post.authorId) ? 'following' : 'follow'}`}
+                      onClick={(e) => handleFollowClick(e, post.authorId)}
+                      title={followStatus.get(post.authorId) ? '언팔로우' : '팔로우'}
+                    >
+                      {followStatus.get(post.authorId) ? (
+                        <>
+                          <FaUserCheck />
+                          <span>팔로잉</span>
+                        </>
+                      ) : (
+                        <>
+                          <FaUserPlus />
+                          <span>팔로우</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 <div className="post-content">

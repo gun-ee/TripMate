@@ -5,6 +5,7 @@ export interface Post {
   title: string;
   content: string;
   imageUrl?: string;
+  authorId: number;
   authorName: string;
   authorProfileImg: string;
   region?: string;

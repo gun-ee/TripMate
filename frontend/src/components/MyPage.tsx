@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { mypageApi } from '../api/mypage';
+import { followApi } from '../api/follow';
 import type { MyProfileResponse, MyTripCard } from '../api/mypage';
 import Header from './Header';
 import './MyPage.css';
@@ -13,10 +14,22 @@ const MyPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const [followCounts, setFollowCounts] = useState<{ followerCount: number; followingCount: number }>({ followerCount: 0, followingCount: 0 });
 
   // 프로필 초기 로드
   useEffect(() => {
-    (async () => setProfile(await mypageApi.profile()))();
+    (async () => {
+      const profileData = await mypageApi.profile();
+      setProfile(profileData);
+      
+      // 팔로우 카운트 로드
+      try {
+        const counts = await followApi.getFollowCounts(profileData.memberId);
+        setFollowCounts(counts);
+      } catch (error) {
+        console.error('팔로우 카운트 로드 실패:', error);
+      }
+    })();
   }, []);
 
   // 목록 로드
@@ -74,8 +87,8 @@ const MyPage: React.FC = () => {
           <div className="profile-username">@{profile?.username ?? 'user'}</div>
 
           <div className="follow-stats">
-            <div><b>0</b><span>팔로워</span></div>
-            <div><b>0</b><span>팔로잉</span></div>
+            <div><b>{followCounts.followerCount}</b><span>팔로워</span></div>
+            <div><b>{followCounts.followingCount}</b><span>팔로잉</span></div>
           </div>
 
           <div className="profile-actions">
