@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -28,4 +29,10 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
     
     // 팔로우 관계 삭제
     void deleteByFollowerAndFollowing(Member follower, Member following);
+    
+    // 팔로워 목록 조회 (최신순)
+    List<Follow> findByFollowingOrderByCreatedAtDesc(Member following);
+    
+    // 팔로잉 목록 조회 (최신순)
+    List<Follow> findByFollowerOrderByCreatedAtDesc(Member follower);
 }

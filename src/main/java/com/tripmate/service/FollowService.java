@@ -8,6 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -90,5 +93,43 @@ public class FollowService {
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         
         return followRepository.countByFollower(member);
+    }
+
+    // 팔로워 목록 조회
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getFollowers(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        List<Follow> follows = followRepository.findByFollowingOrderByCreatedAtDesc(member);
+        
+        return follows.stream()
+                .map(follow -> Map.<String, Object>of(
+                    "id", follow.getFollower().getId(),
+                    "username", follow.getFollower().getEmail().split("@")[0], // email에서 username 추출
+                    "nickname", follow.getFollower().getNickname(),
+                    "profileImg", follow.getFollower().getProfileImg(),
+                    "followedAt", follow.getCreatedAt()
+                ))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    // 팔로잉 목록 조회
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getFollowing(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        List<Follow> follows = followRepository.findByFollowerOrderByCreatedAtDesc(member);
+        
+        return follows.stream()
+                .map(follow -> Map.<String, Object>of(
+                    "id", follow.getFollowing().getId(),
+                    "username", follow.getFollowing().getEmail().split("@")[0], // email에서 username 추출
+                    "nickname", follow.getFollowing().getNickname(),
+                    "profileImg", follow.getFollowing().getProfileImg(),
+                    "followedAt", follow.getCreatedAt()
+                ))
+                .collect(java.util.stream.Collectors.toList());
     }
 }

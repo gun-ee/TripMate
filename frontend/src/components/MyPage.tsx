@@ -4,6 +4,7 @@ import { mypageApi } from '../api/mypage';
 import { followApi } from '../api/follow';
 import type { MyProfileResponse, MyTripCard } from '../api/mypage';
 import Header from './Header';
+import FollowModal from './FollowModal';
 import './MyPage.css';
 
 const MyPage: React.FC = () => {
@@ -15,6 +16,17 @@ const MyPage: React.FC = () => {
   const [hasMore, setHasMore] = useState(true);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [followCounts, setFollowCounts] = useState<{ followerCount: number; followingCount: number }>({ followerCount: 0, followingCount: 0 });
+  
+  // 모달 상태
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    type: 'followers' | 'following';
+    title: string;
+  }>({
+    isOpen: false,
+    type: 'followers',
+    title: ''
+  });
 
   // 프로필 초기 로드
   useEffect(() => {
@@ -73,6 +85,27 @@ const MyPage: React.FC = () => {
     navigate(`/trip/result?id=${tripId}`);
   };
 
+  // 모달 열기 함수들
+  const openFollowersModal = () => {
+    setModalState({
+      isOpen: true,
+      type: 'followers',
+      title: '팔로워'
+    });
+  };
+
+  const openFollowingModal = () => {
+    setModalState({
+      isOpen: true,
+      type: 'following',
+      title: '팔로잉'
+    });
+  };
+
+  const closeModal = () => {
+    setModalState(prev => ({ ...prev, isOpen: false }));
+  };
+
   return (
     <div className="mypage-wrapper">
       <Header />
@@ -87,8 +120,12 @@ const MyPage: React.FC = () => {
           <div className="profile-username">@{profile?.username ?? 'user'}</div>
 
           <div className="follow-stats">
-            <div><b>{followCounts.followerCount}</b><span>팔로워</span></div>
-            <div><b>{followCounts.followingCount}</b><span>팔로잉</span></div>
+            <div className="follow-stat-item" onClick={openFollowersModal}>
+              <b>{followCounts.followerCount}</b><span>팔로워</span>
+            </div>
+            <div className="follow-stat-item" onClick={openFollowingModal}>
+              <b>{followCounts.followingCount}</b><span>팔로잉</span>
+            </div>
           </div>
 
           <div className="profile-actions">
@@ -118,6 +155,17 @@ const MyPage: React.FC = () => {
           {!hasMore && <div className="end">더 이상 항목이 없습니다.</div>}
         </main>
       </div>
+
+      {/* 팔로워/팔로잉 모달 */}
+      {profile && (
+        <FollowModal
+          isOpen={modalState.isOpen}
+          onClose={closeModal}
+          userId={profile.memberId}
+          type={modalState.type}
+          title={modalState.title}
+        />
+      )}
     </div>
   );
 };

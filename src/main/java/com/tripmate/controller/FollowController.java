@@ -7,9 +7,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
+
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -27,10 +28,6 @@ public class FollowController {
         if (principal instanceof CustomUserDetails cud) {
             return cud.getMember();
         }
-        // 그 외 환경 대비: username/email 로 조회
-        String username;
-        if (principal instanceof UserDetails ud) username = ud.getUsername();
-        else username = String.valueOf(principal);
 
         throw new IllegalStateException("인증된 사용자 정보를 찾을 수 없습니다.");
     }
@@ -119,6 +116,42 @@ public class FollowController {
             return ResponseEntity.ok(Map.of(
                 "followerCount", followerCount,
                 "followingCount", followingCount
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
+        }
+    }
+
+    // 팔로워 목록 조회
+    @GetMapping("/{userId}/followers")
+    public ResponseEntity<Map<String, Object>> getFollowers(@PathVariable Long userId) {
+        try {
+            List<Map<String, Object>> followers = followService.getFollowers(userId);
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "followers", followers
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
+        }
+    }
+
+    // 팔로잉 목록 조회
+    @GetMapping("/{userId}/following")
+    public ResponseEntity<Map<String, Object>> getFollowing(@PathVariable Long userId) {
+        try {
+            List<Map<String, Object>> following = followService.getFollowing(userId);
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "following", following
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of(

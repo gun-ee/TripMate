@@ -1,0 +1,230 @@
+/* 팔로워/팔로잉 모달 스타일 */
+.follow-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+}
+
+.follow-modal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.follow-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0f2f1;
+  background: #f8fffe;
+}
+
+.follow-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a5f7a;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.follow-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #6b7280;
+  font-size: 16px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 48px;
+  color: #d1d5db;
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 16px;
+}
+
+.user-list {
+  padding: 0;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s ease;
+}
+
+.user-item:hover {
+  background-color: #f8fffe;
+}
+
+.user-item:last-child {
+  border-bottom: none;
+}
+
+.follow-modal .user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.follow-modal .user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e0f2f1;
+}
+
+.follow-modal .user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.follow-modal .user-name {
+  font-weight: 600;
+  color: #1a5f7a;
+  font-size: 16px;
+}
+
+.follow-modal .user-username {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.follow-modal .follow-date {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+/* 팔로우 버튼 스타일 */
+.follow-modal .follow-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.follow-modal .follow-btn.follow {
+  background-color: #26a69a;
+  color: white;
+}
+
+.follow-modal .follow-btn.follow:hover {
+  background-color: #00897b;
+  transform: translateY(-1px);
+}
+
+.follow-modal .follow-btn.following {
+  background-color: #e0f2f1;
+  color: #26a69a;
+  border: 1px solid #26a69a;
+}
+
+.follow-modal .follow-btn.following:hover {
+  background-color: #f5f5f5;
+  color: #666;
+  border-color: #ccc;
+}
+
+.follow-modal .follow-btn svg {
+  font-size: 12px;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 640px) {
+  .follow-modal {
+    margin: 10px;
+    max-height: 90vh;
+  }
+  
+  .follow-modal-header {
+    padding: 16px 20px;
+  }
+  
+  .user-item {
+    padding: 12px 20px;
+  }
+  
+  .follow-modal .user-avatar {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .follow-modal .user-name {
+    font-size: 15px;
+  }
+  
+  .follow-modal .user-username {
+    font-size: 13px;
+  }
+  
+  .follow-modal .follow-btn {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+}

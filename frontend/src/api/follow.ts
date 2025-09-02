@@ -9,6 +9,14 @@ export type FollowCounts = {
   followingCount: number;
 };
 
+export type FollowUser = {
+  id: number;
+  username: string;
+  nickname: string;
+  profileImg: string;
+  followedAt: string;
+};
+
 export type FollowResponse = {
   success: boolean;
   message: string;
@@ -38,5 +46,17 @@ export const followApi = {
   getFollowCounts: async (userId: number): Promise<FollowCounts> => {
     const { data } = await axios.get(`/follow/${userId}/counts`);
     return data;
+  },
+
+  // 팔로워 목록 조회
+  getFollowers: async (userId: number): Promise<FollowUser[]> => {
+    const { data } = await axios.get(`/follow/${userId}/followers`);
+    return data.followers || [];
+  },
+
+  // 팔로잉 목록 조회
+  getFollowing: async (userId: number): Promise<FollowUser[]> => {
+    const { data } = await axios.get(`/follow/${userId}/following`);
+    return data.following || [];
   },
 };
