@@ -52,7 +52,6 @@ public class MyPageService {
                         .endDate(t.getEndDate())
                         .placeCount(placeCounts.getOrDefault(t.getId(), 0))
                         .coverImageUrl(null) // 프로젝트에 커버 필드 없다면 null 유지(프론트에서 플레이스홀더)
-                        .isPublic(true)      // 공개여부 필드 없으면 true 고정
                         .build()
         ).toList();
 

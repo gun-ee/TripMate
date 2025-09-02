@@ -15,12 +15,14 @@ type Day = {
 type TripResultView = {
   id: number; title: string; city: string; startDate: string; endDate: string;
   defaultStartTime: string; defaultEndTime: string; days: Day[];
+  authorId: number; authorName: string; // 작성자 정보 추가
 };
 
 export default function TripResultPage() {
   const [trip, setTrip] = useState<TripResultView | null>(null);
   const [active, setActive] = useState(0);
   const [localDays, setLocalDays] = useState<Day[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
   const timetable = useMemo(() => {
     const d = localDays[active];
@@ -62,6 +64,21 @@ export default function TripResultPage() {
       setTrip(data);
       setLocalDays(data.days);
     })();
+  }, []);
+
+  // 현재 사용자 정보 가져오기
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const { data } = await axios.get('/members/me');
+        setCurrentUserId(data.id);
+      } catch (error) {
+        console.error('현재 사용자 정보 가져오기 실패:', error);
+        setCurrentUserId(null);
+      }
+    };
+    
+    fetchCurrentUser();
   }, []);
 
   const center: LatLngExpression = useMemo(() => {
@@ -143,22 +160,25 @@ export default function TripResultPage() {
         <div className="topbar" style={{gridColumn: '1 / span 3'}}>
           <div className="grow" />
           <PDFExport {...convertToPDFFormat()} />
-          <button 
-            className="btn primary"
-            onClick={handleEditTrip}
-            style={{
-              backgroundColor: '#3498db',
-              color: 'white',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 'bold'
-            }}
-          >
-            ✏️ 여행 계획 편집
-          </button>
+          {/* 작성자만 편집 버튼 표시 */}
+          {trip && currentUserId === trip.authorId && (
+            <button 
+              className="btn primary"
+              onClick={handleEditTrip}
+              style={{
+                backgroundColor: '#3498db',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }}
+            >
+              ✏️ 여행 계획 편집
+            </button>
+          )}
         </div>
         
         {/* 좌측 일차 네비게이션 */}

@@ -261,6 +261,18 @@ const TripTalk: React.FC = () => {
 
     setIsLoading(true);
     try {
+      // currentMemberId가 없으면 사용자 정보 다시 가져오기
+      if (!currentMemberId && isLoggedIn) {
+        try {
+          const userResponse = await axiosInstance.get('/members/me');
+          if (userResponse.data.id) {
+            setCurrentMemberId(userResponse.data.id);
+          }
+        } catch (userError) {
+          console.error('사용자 정보 재확인 실패:', userError);
+        }
+      }
+
       // 선택된 여행지에 따라 region 파라미터 추가
       const regionParam = selectedRegion ? `&region=${encodeURIComponent(selectedRegion)}` : '';
       const response = await axiosInstance.get(`/posts?page=${page}&size=${postsPerPage}${regionParam}`);
@@ -395,6 +407,16 @@ const TripTalk: React.FC = () => {
 
       addPost(newPostData);
       setNewPost({ title: '', content: '', image: null, region: selectedRegion }); // region 정보 유지
+
+      // 게시물 작성 후 현재 사용자 정보 다시 확인 (팔로우 버튼 표시를 위해)
+      try {
+        const userResponse = await axiosInstance.get('/members/me');
+        if (userResponse.data.id) {
+          setCurrentMemberId(userResponse.data.id);
+        }
+      } catch (userError) {
+        console.error('사용자 정보 재확인 실패:', userError);
+      }
 
     } catch (error) {
       console.error('게시글 작성 실패:', error);
@@ -614,7 +636,7 @@ const TripTalk: React.FC = () => {
                       </span>
                     </div>
                   </div>
-                  {post.authorId !== currentMemberId && (
+                  {post.authorId && post.authorId !== currentMemberId && (
                     <button 
                       className={`follow-btn ${followStatus.get(post.authorId) ? 'following' : 'follow'}`}
                       onClick={(e) => handleFollowClick(e, post.authorId)}

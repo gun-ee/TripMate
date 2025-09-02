@@ -22,6 +22,8 @@ public class TripEditView {
     private LocalTime defaultStartTime;
     private LocalTime defaultEndTime;
     private String defaultTransportMode;
+    private Long authorId; // 작성자 ID 추가
+    private String authorName; // 작성자 이름 추가
     private List<Day> days;
 
     @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder

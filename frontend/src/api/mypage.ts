@@ -17,7 +17,6 @@ export type MyTripCard = {
   endDate: string;   // ISO
   placeCount: number;
   coverImageUrl?: string | null;
-  isPublic: boolean;
 };
 
 export type MyTripsPageResponse = {

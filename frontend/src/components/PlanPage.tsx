@@ -90,6 +90,8 @@ export default function PlanPage() {
   /** 0) 화면 상태 */
   const [isPlanningStarted, setIsPlanningStarted] = useState(false);
   const [editTripId, setEditTripId] = useState<number | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [tripAuthorId, setTripAuthorId] = useState<number | null>(null);
 
   /** 1) 도시/날짜 */
   const [cityQuery, setCityQuery] = useState('');
@@ -135,6 +137,21 @@ export default function PlanPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 현재 사용자 정보 가져오기
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const { data } = await axios.get('/members/me');
+        setCurrentUserId(data.id);
+      } catch (error) {
+        console.error('현재 사용자 정보 가져오기 실패:', error);
+        setCurrentUserId(null);
+      }
+    };
+    
+    fetchCurrentUser();
+  }, []);
+
   // 기존 여행 데이터 로드
   const loadExistingTrip = async (tripId: number) => {
     try {
@@ -144,6 +161,7 @@ export default function PlanPage() {
       setEndDate(data.endDate);
       setDayStart(data.defaultStartTime);
       setDayEnd(data.defaultEndTime);
+      setTripAuthorId(data.authorId);
       
       // 기존 일정 데이터를 PlanPage 형식으로 변환
       const convertedDays: ItinStop[][] = data.days.map((day: { id: number; items: Array<{ id: number; nameSnapshot: string; lat: number; lng: number; stayMin?: number }> }) => 
@@ -471,6 +489,12 @@ export default function PlanPage() {
         alert('로그인이 필요합니다.');
         return;
       }
+
+      // 편집 모드에서 작성자 권한 확인
+      if (editTripId && currentUserId !== tripAuthorId) {
+        alert('이 여행계획을 편집할 권한이 없습니다.');
+        return;
+      }
       
       // 여행 일정 데이터 구성 - 실제 사용자가 선택한 장소들로 구성
       const tripData = {
@@ -755,9 +779,12 @@ export default function PlanPage() {
             <div className="hint">교통수단: {transport} / 경로: {routeMode}</div>
             <div className="grow" />
             <button className="btn" onClick={optimizeActiveDay}>현재 일차 최적화</button>
-            <button className="btn primary" onClick={savePlan}>
-              {editTripId ? '여행계획 수정' : '여행계획 저장'}
-            </button>
+            {/* 편집 모드에서는 작성자만 저장 버튼 표시, 새 여행 생성은 모든 로그인 사용자 가능 */}
+            {(!editTripId || currentUserId === tripAuthorId) && (
+              <button className="btn primary" onClick={savePlan}>
+                {editTripId ? '여행계획 수정' : '여행계획 저장'}
+              </button>
+            )}
           </div>
         </>
       )}

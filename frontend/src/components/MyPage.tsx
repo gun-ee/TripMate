@@ -177,7 +177,6 @@ function TripCardView({ trip, onClick }: { trip: MyTripCard; onClick: () => void
       <div className="thumb">
         {trip.coverImageUrl ? <img src={trip.coverImageUrl} alt={trip.title} /> : <div className="thumb-fallback" />}
         <div className="thumb-badge">{trip.placeCount ?? 0}곳</div>
-        {!trip.isPublic && <div className="thumb-lock">비공개</div>}
       </div>
       <div className="trip-info">
         <h3 className="trip-title">{trip.title}</h3>

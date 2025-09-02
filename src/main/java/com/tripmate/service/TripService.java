@@ -478,6 +478,8 @@ public class TripService {
                 .defaultStartTime(trip.getDefaultStartTime())
                 .defaultEndTime(trip.getDefaultEndTime())
                 .defaultTransportMode(trip.getDefaultTransportMode().name())
+                .authorId(trip.getMember().getId())
+                .authorName(trip.getMember().getNickname() != null ? trip.getMember().getNickname() : trip.getMember().getEmail().split("@")[0])
                 .days(dayDtos)
                 .build();
     }
