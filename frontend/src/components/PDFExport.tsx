@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 // @ts-expect-error - html2pdf.js has no type definitions
 import html2pdf from 'html2pdf.js';
+import QRCode from 'react-qr-code';
 
 interface ItinStop {
   id: string;
@@ -32,6 +33,9 @@ const PDFExport: React.FC<PDFExportProps> = ({
   dayStart, 
   dayEnd 
 }) => {
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string>('');
+
   const formatTime = (timeStr: string) => {
     // 이미 HH:MM 형식으로 되어 있으면 그대로 반환
     if (timeStr && timeStr.includes(':')) {
@@ -44,7 +48,7 @@ const PDFExport: React.FC<PDFExportProps> = ({
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   };
 
-  const generatePDF = async () => {
+  const generatePDF = async (showQR: boolean = false) => {
     // HTML 요소 생성
     const element = document.createElement('div');
     element.style.fontFamily = 'Noto Sans KR, Arial, sans-serif';
@@ -121,9 +125,10 @@ const PDFExport: React.FC<PDFExportProps> = ({
     `;
     
     // html2pdf 옵션 설정
+    const filename = `${cityQuery}_여행계획_${startDate}_${endDate}.pdf`;
     const opt = {
       margin: 10,
-      filename: `${cityQuery}_여행계획_${startDate}_${endDate}.pdf`,
+      filename: filename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
         scale: 2,
@@ -137,17 +142,152 @@ const PDFExport: React.FC<PDFExportProps> = ({
       }
     };
     
-    // PDF 생성
-    await html2pdf().set(opt).from(element).save();
+    if (showQR) {
+      // QR 코드용 - 여행 계획 페이지 링크 생성
+      const pageLink = `${window.location.origin}/trip/edit?id=${window.location.search.split('id=')[1]}`;
+      setPdfUrl(pageLink);
+      setShowQRModal(true);
+    } else {
+      // 일반 PDF 다운로드
+      await html2pdf().set(opt).from(element).save();
+    }
   };
 
   return (
-    <button 
-      className="pdf-export-btn" 
-      onClick={generatePDF}
-    >
-      📄 PDF 출력
-    </button>
+    <>
+      <div style={{ display: 'flex', gap: '10px', margin: '5px' }}>
+        <button 
+          className="pdf-export-btn" 
+          onClick={() => generatePDF(false)}
+          style={{
+            backgroundColor: '#e74c3c',
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}
+        >
+          📄 PDF 다운로드
+        </button>
+        
+        <button 
+          onClick={() => generatePDF(true)}
+          style={{
+            backgroundColor: '#3498db',
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}
+        >
+          📱 QR 코드 공유
+        </button>
+      </div>
+
+      {/* QR 코드 모달 */}
+      {showQRModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '30px',
+            borderRadius: '10px',
+            textAlign: 'center',
+            maxWidth: '400px',
+            width: '90%'
+          }}>
+            <h3 style={{ marginBottom: '20px', color: '#333' }}>QR 코드로 PDF 공유</h3>
+            
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              marginBottom: '20px',
+              padding: '20px',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '8px'
+            }}>
+              <QRCode 
+                value={pdfUrl}
+                size={200}
+                style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+              />
+            </div>
+            
+            <p style={{ 
+              fontSize: '14px', 
+              color: '#666', 
+              marginBottom: '20px',
+              wordBreak: 'break-all'
+            }}>
+              QR 코드를 스캔하여 여행 계획 페이지에 접근하세요
+            </p>
+            
+            <p style={{ 
+              fontSize: '12px', 
+              color: '#999', 
+              marginBottom: '20px'
+            }}>
+              ※ 페이지 접근 후 "PDF 다운로드" 버튼을 눌러주세요<br/>
+              배포된 서버에서만 다른 기기 접근 가능합니다
+            </p>
+            
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(pdfUrl);
+                  alert('링크가 클립보드에 복사되었습니다!');
+                }}
+                style={{
+                  backgroundColor: '#27ae60',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 15px',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                📋 링크 복사
+              </button>
+              
+              <button
+                onClick={() => {
+                  setShowQRModal(false);
+                  setPdfUrl('');
+                }}
+                style={{
+                  backgroundColor: '#95a5a6',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 15px',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                ✕ 닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

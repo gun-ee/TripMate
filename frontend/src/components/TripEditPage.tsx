@@ -73,6 +73,7 @@ export default function TripEditPage() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const id = params.get('id');
+    
     if (!id) return;
     (async () => {
       const { data } = await axios.get<TripEditView>(`/trips/${id}/edit-view`);
