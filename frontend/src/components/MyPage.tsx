@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { mypageApi } from '../api/mypage';
 import { followApi } from '../api/follow';
 import type { MyProfileResponse, MyTripCard } from '../api/mypage';
@@ -9,7 +9,9 @@ import './MyPage.css';
 
 const MyPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [profile, setProfile] = useState<MyProfileResponse | null>(null);
+  const [targetUserId, setTargetUserId] = useState<number | null>(null);
   const [trips, setTrips] = useState<MyTripCard[]>([]);
   const [cursor, setCursor] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -28,28 +30,44 @@ const MyPage: React.FC = () => {
     title: ''
   });
 
+  // 쿼리 파라미터 확인
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const userId = params.get('userId');
+    if (userId) {
+      setTargetUserId(parseInt(userId));
+    }
+  }, [location.search]);
+
   // 프로필 초기 로드
   useEffect(() => {
     (async () => {
-      const profileData = await mypageApi.profile();
-      setProfile(profileData);
-      
-      // 팔로우 카운트 로드
       try {
-        const counts = await followApi.getFollowCounts(profileData.memberId);
+        // targetUserId가 있으면 해당 유저의 프로필, 없으면 본인 프로필
+        const profileData = targetUserId 
+          ? await mypageApi.userProfile(targetUserId)
+          : await mypageApi.profile();
+        setProfile(profileData);
+        
+        // 팔로우 카운트 로드
+        const userIdToCheck = targetUserId || profileData.memberId;
+        const counts = await followApi.getFollowCounts(userIdToCheck);
         setFollowCounts(counts);
       } catch (error) {
-        console.error('팔로우 카운트 로드 실패:', error);
+        console.error('프로필 로드 실패:', error);
       }
     })();
-  }, []);
+  }, [targetUserId]);
 
   // 목록 로드
   const loadMore = useCallback(async (isInitial = false) => {
     if (loading || (!isInitial && !hasMore)) return;
     setLoading(true);
     try {
-      const page = await mypageApi.myTrips(cursor ?? undefined, 12);
+      // targetUserId가 있으면 해당 유저의 여행 목록, 없으면 본인 여행 목록
+      const page = targetUserId 
+        ? await mypageApi.userTrips(targetUserId, cursor ?? undefined, 12)
+        : await mypageApi.myTrips(cursor ?? undefined, 12);
       if (isInitial) {
         setTrips(page.items ?? []);
       } else {
@@ -64,12 +82,22 @@ const MyPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [cursor, loading, hasMore]);
+  }, [cursor, loading, hasMore, targetUserId]);
 
   // 첫 페이지 로드
   useEffect(() => { 
     loadMore(true); 
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // targetUserId가 변경될 때 여행 목록 초기화 및 다시 로드
+  useEffect(() => {
+    if (targetUserId !== null) {
+      setTrips([]);
+      setCursor(null);
+      setHasMore(true);
+      loadMore(true);
+    }
+  }, [targetUserId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 무한스크롤
   useEffect(() => {
@@ -87,6 +115,9 @@ const MyPage: React.FC = () => {
 
   // 모달 열기 함수들
   const openFollowersModal = () => {
+    const userId = targetUserId || profile?.memberId;
+    if (!userId) return;
+    
     setModalState({
       isOpen: true,
       type: 'followers',
@@ -95,6 +126,9 @@ const MyPage: React.FC = () => {
   };
 
   const openFollowingModal = () => {
+    const userId = targetUserId || profile?.memberId;
+    if (!userId) return;
+    
     setModalState({
       isOpen: true,
       type: 'following',
@@ -152,7 +186,6 @@ const MyPage: React.FC = () => {
 
           {loading && <div className="loading">불러오는 중…</div>}
           <div ref={sentinelRef} style={{ height: 1 }} />
-          {!hasMore && <div className="end">더 이상 항목이 없습니다.</div>}
         </main>
       </div>
 
@@ -161,7 +194,7 @@ const MyPage: React.FC = () => {
         <FollowModal
           isOpen={modalState.isOpen}
           onClose={closeModal}
-          userId={profile.memberId}
+          userId={targetUserId || profile.memberId}
           type={modalState.type}
           title={modalState.title}
         />

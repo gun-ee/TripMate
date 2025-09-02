@@ -32,7 +32,7 @@ const TripTalk: React.FC = () => {
   const [profileImg, setProfileImg] = useState<string>('');
   const [nickname, setNickname] = useState<string>('');
   const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
-  const [showOnlyTraveling, setShowOnlyTraveling] = useState<boolean>(false);
+
   const [newPost, setNewPost] = useState({
     title: '',
     content: '',
@@ -111,8 +111,10 @@ const TripTalk: React.FC = () => {
     setTrendingLoading(true);
     try {
       const response = await axiosInstance.get('/posts/trending');
-      setTrendingPosts(response.data);
-      console.log('🔥 [TripTalk] 인기 게시글:', response.data);
+      // 좋아요가 1개 이상인 게시글만 필터링
+      const filteredPosts = response.data.filter((post: Post) => post.likeCount >= 1);
+      setTrendingPosts(filteredPosts);
+      console.log('🔥 [TripTalk] 인기 게시글 (좋아요 1개 이상):', filteredPosts);
     } catch (error) {
       console.error('🔥 [TripTalk] 인기 게시글 가져오기 실패:', error);
     } finally {
@@ -429,10 +431,7 @@ const TripTalk: React.FC = () => {
     }
   };
 
-  const filteredPosts = posts.filter(post => {
-    if (showOnlyTraveling && !post.authorName.includes('여행중')) return false;
-    return true;
-  });
+  const filteredPosts = posts;
 
   return (
     <>
@@ -500,14 +499,6 @@ const TripTalk: React.FC = () => {
           <div className="triptalk-header">
             <h1>{selectedRegion}</h1>
             <div className="triptalk-stats">
-              <div className="stat-item">
-                <span className="stat-label">여행 준비중</span>
-                <span className="stat-value">63,106명</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">여행중</span>
-                <span className="stat-value">4,826명</span>
-              </div>
               <div className="region-chat-buttons-scroll">
                 {regionCities[selectedRegion as keyof typeof regionCities]?.map((city) => (
                   <button 
@@ -538,14 +529,7 @@ const TripTalk: React.FC = () => {
               <option>주제</option>
             </select>
 
-            <label className="traveling-only">
-              <input
-                type="checkbox"
-                checked={showOnlyTraveling}
-                onChange={(e) => setShowOnlyTraveling(e.target.checked)}
-              />
-              여행중인 사람만
-            </label>
+
           </div>
 
           {/* 새 게시글 작성 */}
@@ -800,23 +784,7 @@ const TripTalk: React.FC = () => {
             </div>
           </div>
           
-          <div className="sidebar-card">
-            <h3>최근 활동</h3>
-            <div className="recent-activities">
-              <div className="activity-item">
-                <span className="activity-user">김여행</span>
-                <span className="activity-action">새 게시글을 작성했습니다</span>
-              </div>
-              <div className="activity-item">
-                <span className="activity-user">박동행</span>
-                <span className="activity-action">댓글을 남겼습니다</span>
-              </div>
-              <div className="activity-item">
-                <span className="activity-user">이맛집</span>
-                <span className="activity-action">좋아요를 눌렀습니다</span>
-              </div>
-            </div>
-          </div>
+
         </div>
       </div>
 

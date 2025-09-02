@@ -46,4 +46,22 @@ public class MyPageController {
                                        @RequestParam(defaultValue = "12") int size) {
         return myPageService.loadMyTrips(currentMember(), cursorId, size);
     }
+
+    // 특정 유저의 프로필 조회
+    @GetMapping("/profile/{userId}")
+    public MyProfileResponse userProfile(@PathVariable Long userId) {
+        Member targetMember = memberRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+        return myPageService.loadProfile(targetMember);
+    }
+
+    // 특정 유저의 여행 목록 조회
+    @GetMapping("/trips/{userId}")
+    public MyTripsPageResponse userTrips(@PathVariable Long userId,
+                                         @RequestParam(required = false) Long cursorId,
+                                         @RequestParam(defaultValue = "12") int size) {
+        Member targetMember = memberRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+        return myPageService.loadMyTrips(targetMember, cursorId, size);
+    }
 }

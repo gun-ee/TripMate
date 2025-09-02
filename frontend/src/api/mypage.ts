@@ -33,4 +33,14 @@ export const mypageApi = {
     const { data } = await axios.get('/mypage/trips', { params: { cursorId, size } });
     return data;
   },
+  // 특정 유저의 프로필 조회
+  userProfile: async (userId: number): Promise<MyProfileResponse> => {
+    const { data } = await axios.get(`/mypage/profile/${userId}`);
+    return data;
+  },
+  // 특정 유저의 여행 목록 조회
+  userTrips: async (userId: number, cursorId?: number, size = 12): Promise<MyTripsPageResponse> => {
+    const { data } = await axios.get(`/mypage/trips/${userId}`, { params: { cursorId, size } });
+    return data;
+  },
 };

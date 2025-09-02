@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaTimes, FaUserPlus, FaUserCheck, FaUser } from 'react-icons/fa';
 import { followApi, type FollowUser } from '../api/follow';
 import './FollowModal.css';
@@ -12,6 +13,7 @@ interface FollowModalProps {
 }
 
 const FollowModal: React.FC<FollowModalProps> = ({ isOpen, onClose, userId, type, title }) => {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<FollowUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [followStatus, setFollowStatus] = useState<Map<number, boolean>>(new Map());
@@ -54,6 +56,12 @@ const FollowModal: React.FC<FollowModalProps> = ({ isOpen, onClose, userId, type
     }
   };
 
+  const handleUserClick = (targetUserId: number) => {
+    // 해당 유저의 마이페이지로 이동
+    navigate(`/members/mypage?userId=${targetUserId}`);
+    onClose(); // 모달 닫기
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -90,7 +98,7 @@ const FollowModal: React.FC<FollowModalProps> = ({ isOpen, onClose, userId, type
             <div className="user-list">
               {users.map((user) => (
                 <div key={user.id} className="user-item">
-                  <div className="user-info">
+                  <div className="user-info" onClick={() => handleUserClick(user.id)} style={{ cursor: 'pointer' }}>
                     <img
                       src={user.profileImg ? `http://localhost:80${user.profileImg}` : '/images/logo.png'}
                       alt="프로필"
