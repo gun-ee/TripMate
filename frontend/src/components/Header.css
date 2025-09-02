@@ -1,15 +1,18 @@
 /* 헤더 전체 */
 .main-navbar {
   width: 100%; /* 100vw는 스크롤바 폭 포함으로 가로 스크롤 유발 → 100%로 교체 */
-  background: #e0f2f1; /* 민트색 배경 */
-  border-bottom: 1px solid #b2dfdb;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fffe 100%);
+  border-bottom: 1px solid rgba(38, 166, 154, 0.1);
   margin: 0;
   padding: 0;
   position: relative;
   z-index: 100;
-  height: 120px !important;
-  min-height: 120px !important;
-  overflow: hidden; /* 로고가 헤더 높이를 넘지 않도록 절단 */
+  height: 80px !important;
+  min-height: 80px !important;
+  /* overflow: hidden; 로고가 헤더 높이를 넘지 않도록 절단 - 제거 */
+  box-shadow: 0 2px 20px rgba(38, 166, 154, 0.08);
+  backdrop-filter: blur(10px);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
 }
 
 /* 프로필 이미지 확대 모달 */
@@ -105,8 +108,8 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  height: 120px !important;
-  min-height: 120px !important;
+  height: 80px !important;
+  min-height: 80px !important;
 }
 
 .main-navbar-logo { /* 로고 컨테이너를 헤더 높이에 맞춤 */
@@ -116,12 +119,19 @@
 }
 
 .main-navbar-logo img {
-  height: 100%;          /* 헤더 세로 높이에 딱 맞춤 */
-  max-height: 100%;
+  height: 75px;          /* 헤더 세로 높이에 딱 맞춤 */
+  max-height: 75px;
   width: auto;           /* 가로는 비율 유지 */
   display: block;
   padding: 0;            /* 여백 제거 */
   object-fit: contain;   /* 비율 유지 */
+  filter: drop-shadow(0 2px 4px rgba(38, 166, 154, 0.2));
+  transition: all 0.3s ease;
+}
+
+.main-navbar-logo img:hover {
+  filter: drop-shadow(0 4px 8px rgba(38, 166, 154, 0.3));
+  transform: scale(1.02);
 }
 
 .main-navbar-menu,
@@ -135,7 +145,7 @@
   height: 100%;
   display: flex;
   align-items: center;
-  gap: 36px;
+  gap: 24px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -149,13 +159,15 @@
 .main-navbar-link,
 a.main-navbar-link,
 span.main-navbar-link {
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  color: #223a5e;
+  color: #26a69a;
   text-decoration: none;
-  padding: 8px 12px;
-  border-radius: 8px;
-  transition: background 0.2s, color 0.2s;
+  padding: 12px 20px;
+  border-radius: 25px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 a.main-navbar-link:hover,
@@ -164,9 +176,10 @@ a.main-navbar-link:focus,
 span.main-navbar-link:focus,
 .main-navbar-link:hover,
 .main-navbar-link:focus {
-  background: #b3d9e6;
-  color: #4a90e2;
-  border-radius: 20px;
+  background: linear-gradient(135deg, #26a69a 0%, #00897b 100%);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(38, 166, 154, 0.3);
 }
 
 /* 드롭다운 */
@@ -178,19 +191,21 @@ span.main-navbar-link:focus,
 .main-navbar-dropdown {
   display: flex !important;
   flex-direction: row !important;
-  gap: 18px;
+  gap: 8px;
   position: absolute;
-  top: 120%;
+  top: 100%;
   left: 0;
-  background: #f0f9f8; /* 연한 민트색 배경 */
-  border-radius: 12px;
-  box-shadow: 0 8px 32px 0 #0001, 0 1.5px 8px 0 #4a90e222;
-  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  box-shadow: 0 10px 40px rgba(38, 166, 154, 0.15);
+  padding: 8px;
   z-index: 10;
   list-style: none;
   min-width: unset;
   width: auto;
   align-items: flex-start;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(38, 166, 154, 0.1);
 }
 
 .main-navbar-dropdown li {
@@ -201,22 +216,24 @@ span.main-navbar-link:focus,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 16px;
-  color: #223a5e;
+  padding: 10px 16px;
+  color: #26a69a;
   text-decoration: none;
-  font-size: 1rem;
-  border-radius: 8px;
-  transition: background 0.2s, color 0.2s;
+  font-size: 0.9rem;
+  border-radius: 20px;
+  transition: all 0.3s ease;
   min-width: 0;
   width: auto;
   text-align: center;
   white-space: nowrap;
+  font-weight: 500;
 }
 
 .main-navbar-dropdown-link:hover {
-  background: #b3d9e6;
-  color: #4a90e2;
-  border-radius: 20px;
+  background: linear-gradient(135deg, #26a69a 0%, #00897b 100%);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(38, 166, 154, 0.3);
 }
 
 /* 우측 아이콘/프로필 */
@@ -265,17 +282,20 @@ span.main-navbar-link:focus,
 }
 
 .main-navbar-profile {
-  width: 54px;
-  height: 54px;
+  width: 45px;
+  height: 45px;
   aspect-ratio: 1/1;
   border-radius: 50%;
   overflow: hidden;
-  background: #eee;
+  background: linear-gradient(135deg, #26a69a 0%, #00897b 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-right: 0;
   margin-left: 12px;
+  border: 3px solid rgba(255, 255, 255, 0.8);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(38, 166, 154, 0.2);
 }
 
 .main-navbar-profile img {
@@ -283,6 +303,12 @@ span.main-navbar-link:focus,
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
+}
+
+.main-navbar-profile:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(38, 166, 154, 0.4);
+  border-color: rgba(255, 255, 255, 1);
 }
 
 /* 프로필 컨테이너 */
@@ -305,9 +331,9 @@ span.main-navbar-link:focus,
   padding: 4px 8px;
   background: none;
   border: none;
-  color: #223a5e;
+  color: #26a69a;
   font-size: 0.9rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   transition: color 0.2s;
   margin-top: 0;
@@ -316,7 +342,7 @@ span.main-navbar-link:focus,
 }
 
 .logout-btn:hover {
-  color: #4a90e2;
+  color: #00897b;
 }
 
 /* 반응형 */
@@ -712,12 +738,13 @@ span.main-navbar-link,
 
 .profile-nickname {
   font-size: 0.85rem;
-  color: #223a5e;
+  color: #26a69a;
   margin-bottom: 2px;
   text-align: center;
   width: 100%;
   word-break: break-all;
   transition: color 0.2s;
+  font-weight: 600;
 }
 
 .profile-info-row {
@@ -748,7 +775,7 @@ span.main-navbar-link,
 .profile-dropdown-menu {
   position: absolute;
   top: 120%;
-  left: 0;
+  left: -10px;
   background: #fff;
   border: 1px solid #eee;
   border-radius: 4px;

@@ -515,7 +515,13 @@ const TripTalk: React.FC = () => {
               </div>
             </div>
             <div className="triptalk-image">
-              <img src="/images/logo.png" alt={selectedRegion} />
+              <img 
+                src={`/images/triptalk/${selectedRegion === '대한민국' ? 'kor' : 
+                      selectedRegion === '동남아시아' ? 'sea' : 
+                      selectedRegion === '유럽' ? 'eu' : 
+                      selectedRegion === '일본' ? 'jp' : 'kor'}.png`} 
+                alt={selectedRegion} 
+              />
             </div>
           </div>
 

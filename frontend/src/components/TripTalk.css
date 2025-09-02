@@ -134,7 +134,7 @@
   scrollbar-width: thin;
   scrollbar-color: var(--primary-color) transparent;
   -webkit-overflow-scrolling: touch;
-  max-width: calc(100% - 200px); /* 이미지 영역만큼 제외 */
+  max-width: 600px; /* 이미지와의 여백 줄이기 위해 더 넓게 */
   flex-shrink: 0;
 }
 

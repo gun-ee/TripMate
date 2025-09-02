@@ -573,7 +573,7 @@ export default function PlanPage() {
    * 렌더
    * ========================= */
   return (
-    <div className="plan-page">
+    <div className={`plan-page ${!isPlanningStarted ? 'planning-not-started' : ''}`}>
       <Header />
       
       {!isPlanningStarted ? (
@@ -633,49 +633,40 @@ export default function PlanPage() {
             <button className="btn primary" onClick={savePlan}>DB 저장</button>
           </div>
           */}
-          {/* 도시/날짜/검색/설정 */}
-          <div className="plan-controls">
-            <input className="city-input" placeholder="도시(제주, 파리, 독일…)"
-                   value={cityQuery} onChange={(e) => setCityQuery(e.target.value)} />
-            <div className="date-range">
-              <label>시작</label><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-              <label>종료</label><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          {/* 통합된 상단 컨트롤 바 */}
+          <div className="plan-controls-bar">
+            <div className="plan-controls-left">
+              <input className="city-input" placeholder="도시(제주, 파리, 독일…)"
+                     value={cityQuery} onChange={(e) => setCityQuery(e.target.value)} />
+              <div className="date-range">
+                <label>시작</label><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                <label>종료</label><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              </div>
+              <button className="btn" onClick={onStartPlan}>계획 시작</button>
+              <input className="keyword-input" placeholder="키워드(없으면 주변)"
+                     value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+              <button className="btn" onClick={() => {
+                const q = keyword.trim();
+                if (q) fetchSearch(mapLat, mapLon, q);
+                else fetchNearby(mapLat, mapLon);
+              }}>검색/주변</button>
+              <select className="btn" value={transport} onChange={(e) => setTransport(e.target.value as TransportMode)}>
+                <option value="driving">차량</option>
+                <option value="foot">도보</option>
+                <option value="bicycle">자전거</option>
+              </select>
+              <select className="btn" value={routeMode} onChange={(e) => setRouteMode(e.target.value as RouteMode)}>
+                <option value="lines">직선</option>
+                <option value="osrm">도로</option>
+              </select>
             </div>
-            <button className="btn" onClick={onStartPlan}>계획 시작</button>
-
-            <div className="spacer" />
-
-            <input className="keyword-input" placeholder="키워드(없으면 주변)"
-                   value={keyword} onChange={(e) => setKeyword(e.target.value)} />
-            <button className="btn" onClick={() => {
-              const q = keyword.trim();
-              if (q) fetchSearch(mapLat, mapLon, q);
-              else fetchNearby(mapLat, mapLon);
-            }}>검색/주변</button>
-
-            <select className="btn" value={transport} onChange={(e) => setTransport(e.target.value as TransportMode)}>
-              <option value="driving">차량</option>
-              <option value="foot">도보</option>
-              <option value="bicycle">자전거</option>
-            </select>
-            <select className="btn" value={routeMode} onChange={(e) => setRouteMode(e.target.value as RouteMode)}>
-              <option value="lines">직선</option>
-              <option value="osrm">도로</option>
-            </select>
-          </div>
-
-          {/* 시간/일차 스위치 */}
-          <div className="timebar">
-            <div>
-              <label>일과 시작</label>
-              <input type="time" value={dayStart} onChange={(e) => setDayStart(e.target.value)} />
-              <label style={{ marginLeft: 12 }}>종료</label>
-              <input type="time" value={dayEnd} onChange={(e) => setDayEnd(e.target.value)} />
-            </div>
-            <div className="dayswitch">
-              <button className="icon-btn" onClick={() => setActiveDay(d => Math.max(0, d-1))}>◀</button>
-              <span className="day-label">{activeDay + 1}일차 / {days.length}</span>
-              <button className="icon-btn" onClick={() => setActiveDay(d => Math.min(days.length-1, d+1))}>▶</button>
+            <div className="plan-controls-right">
+              <div className="time-controls">
+                <label>일과 시작</label>
+                <input type="time" value={dayStart} onChange={(e) => setDayStart(e.target.value)} />
+                <label>종료</label>
+                <input type="time" value={dayEnd} onChange={(e) => setDayEnd(e.target.value)} />
+              </div>
             </div>
           </div>
 
@@ -744,7 +735,13 @@ export default function PlanPage() {
 
             {/* 일정 패널 */}
             <div className="results-wrap">
-              <div className="results-header">일정 (Day {activeDay + 1})</div>
+              <div className="results-header">
+                <div className="day-navigation">
+                  <button className="day-nav-btn" onClick={() => setActiveDay(d => Math.max(0, d-1))}>◀</button>
+                  <span className="day-label">일정 (Day {activeDay + 1})</span>
+                  <button className="day-nav-btn" onClick={() => setActiveDay(d => Math.min(days.length-1, d+1))}>▶</button>
+                </div>
+              </div>
               {(days[activeDay] ?? []).length === 0 ? (
                 <div className="results-empty">선택된 장소가 없습니다.</div>
               ) : (
