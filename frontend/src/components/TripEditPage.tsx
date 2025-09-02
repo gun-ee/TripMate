@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from '../api/axios';
 import Header from './Header';
+import PDFExport from './PDFExport';
 import './TripPlan.css';
 import './TripEdit.css';
 import { MapContainer, TileLayer, Marker, Polyline, GeoJSON } from 'react-leaflet';
@@ -92,15 +93,74 @@ export default function TripEditPage() {
     return [d.items[0].lat, d.items[0].lng] as LatLngExpression;
   }, [localDays, active]);
 
+  // PDF 출력을 위한 데이터 변환 함수
+  const convertToPDFFormat = () => {
+    if (!trip) return { days: [], cityQuery: '', startDate: '', endDate: '', dayStart: '09:00', dayEnd: '18:00' };
+    
+    const convertedDays = trip.days.map(day => {
+      // 실제 시간표 계산 (TripEditPage의 timetable 로직과 동일)
+      const start = day.startTime?.slice(0,5) || '09:00';
+      const end = day.endTime?.slice(0,5) || '18:00';
+      const toMinutes = (s: string) => { const [h,m]=s.split(':').map(x=>parseInt(x,10)); return h*60+(m||0); };
+      const toHHMM = (m: number) => { const h=Math.floor(m/60), mm=m%60; return `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`; };
+      
+      const legs = day.legs ?? [];
+      const legMap = new Map<string, number>();
+      legs.forEach(l => { 
+        if (l.fromItemId && l.toItemId) 
+          legMap.set(`${l.fromItemId}->${l.toItemId}`, Math.max(0, Math.round((l.durationSec||0)/60))); 
+      });
+      
+      let t = toMinutes(start);
+      const endMin = toMinutes(end);
+      
+      return day.items.map((item, idx) => {
+        let travel = 0;
+        if (idx > 0) {
+          const prev = day.items[idx-1];
+          travel = legMap.get(`${prev.id}->${item.id}`) ?? 0;
+          t += travel;
+        }
+        const arrive = t;
+        const stay = Math.max(0, item.stayMin ?? 60);
+        let depart = arrive + stay;
+        if (depart > endMin) depart = endMin;
+        t = depart;
+        
+        return {
+          id: String(item.id),
+          name: item.nameSnapshot,
+          lat: item.lat,
+          lon: item.lng,
+          durationMin: stay,
+          arrive: toHHMM(arrive),
+          depart: toHHMM(depart),
+          travelMin: travel,
+          isLodging: false // TripEditPage에서는 숙소 정보가 없으므로 false로 설정
+        };
+      });
+    });
+    
+    return {
+      days: convertedDays,
+      cityQuery: trip.city,
+      startDate: trip.startDate,
+      endDate: trip.endDate,
+      dayStart: trip.defaultStartTime,
+      dayEnd: trip.defaultEndTime
+    };
+  };
+
   if (!trip) return <div className="plan-page"><Header /><div style={{padding:20}}>불러오는 중…</div></div>;
 
   return (
     <div className="plan-page">
       <Header />
       <div className="plan-row" style={{ gridTemplateColumns: '0.3fr 1fr 1fr' }}>
-        {/* 상단 설정 바: 타임존 */}
+        {/* 상단 설정 바: 타임존 및 PDF 출력 */}
         <div className="topbar" style={{gridColumn: '1 / span 3'}}>
           <div className="grow" />
+          <PDFExport {...convertToPDFFormat()} />
           <label>타임존</label>
           <select className="btn" defaultValue={trip.timeZone || 'Asia/Seoul'} onChange={async (e) => {
             const id = new URLSearchParams(location.search).get('id');

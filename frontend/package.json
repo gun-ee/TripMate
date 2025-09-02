@@ -10,9 +10,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/noto-sans-kr": "^5.2.6",
     "@stomp/stompjs": "^7.1.1",
     "@types/sockjs-client": "^1.5.4",
     "axios": "^1.11.0",
+    "html2canvas": "^1.4.1",
+    "html2pdf.js": "^0.12.0",
+    "jspdf": "^3.0.2",
+    "jspdf-autotable": "^5.0.2",
+    "jspdf-font": "^1.0.7",
     "jwt-decode": "^4.0.0",
     "leaflet": "^1.9.4",
     "react": "^19.1.1",

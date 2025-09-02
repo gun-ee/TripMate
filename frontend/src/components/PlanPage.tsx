@@ -1,6 +1,6 @@
 // src/pages/PlanPage.tsx
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GeoJsonObject } from 'geojson';
 import Header from './Header';
 import {
@@ -16,6 +16,7 @@ import type { LatLngExpression } from 'leaflet';
 import axios from '../api/axios';
 import MapAutoResize from '../components/MapAutoResize';   // 교체본 사용(미세리사이즈 무시)
 import MapMoveWatcher from '../components/MapMoveWatcher'; // 교체본 사용(쿨다운/미세이동 가드)
+import PDFExport from '../components/PDFExport';
 import './PlanPage.css';
 
 /* =========================
@@ -643,7 +644,7 @@ export default function PlanPage() {
                   {(days[activeDay] ?? []).map((s, i) => (
                     <div key={`${s.id}:${i}`} className="place-item">
                       <div className="place-title">
-                        {i + 1}. {s.name} {!!s.isLodging && <span className="badge">숙소</span>}
+                        {i + 1}. {s.name} {s.isLodging && <span className="badge">숙소</span>}
                       </div>
                       <div className="place-tags">
                         체류 {s.durationMin}분 / 도착 {HHMM(timetable[i]?.arrive ?? 0)} ~ 출발 {HHMM(timetable[i]?.depart ?? 0)}
@@ -652,7 +653,7 @@ export default function PlanPage() {
                         <button className="chip" onClick={() => reorder(activeDay, i, -1)}>▲</button>
                         <button className="chip" onClick={() => reorder(activeDay, i, 1)}>▼</button>
                         <button className="chip" onClick={() => toggleLodging(activeDay, i)}>
-                          {!!s.isLodging ? '숙소 해제' : '숙소 설정'}
+                          {s.isLodging ? '숙소 해제' : '숙소 설정'}
                         </button>
                         <button className="chip" onClick={() => setDuration(activeDay, i, s.durationMin + 30)}>+30m</button>
                         <button className="chip" onClick={() => setDuration(activeDay, i, Math.max(0, s.durationMin - 30))}>-30m</button>
@@ -670,6 +671,14 @@ export default function PlanPage() {
             <div className="hint">교통수단: {transport} / 경로: {routeMode}</div>
             <div className="grow" />
             <button className="btn ghost" onClick={exportPlan}>전체 계획 출력</button>
+            <PDFExport 
+              days={days}
+              cityQuery={cityQuery}
+              startDate={startDate}
+              endDate={endDate}
+              dayStart={dayStart}
+              dayEnd={dayEnd}
+            />
             <button className="btn" onClick={optimizeActiveDay}>현재 일차 최적화</button>
             <button className="btn primary" onClick={savePlan}>여행계획 저장</button>
           </div>
