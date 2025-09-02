@@ -39,6 +39,30 @@ public class PlaceSearchService {
 
   private static class Entry<T> { final T v; final long exp; Entry(T v,long exp){this.v=v;this.exp=exp;} }
   private final Map<String, Entry<List<PlaceDto>>> l1 = new ConcurrentHashMap<>();
+  // 간단 한글→영문 도시명 매핑 (필요 시 확장)
+  private static final Map<String, String> KO_EN_CITY = Map.ofEntries(
+          Map.entry("파리", "Paris"),
+          Map.entry("런던", "London"),
+          Map.entry("뉴욕", "New York"),
+          Map.entry("도쿄", "Tokyo"),
+          Map.entry("오사카", "Osaka"),
+          Map.entry("홍콩", "Hong Kong"),
+          Map.entry("방콕", "Bangkok"),
+          Map.entry("싱가포르", "Singapore"),
+          Map.entry("로마", "Rome"),
+          Map.entry("밀라노", "Milan"),
+          Map.entry("마드리드", "Madrid"),
+          Map.entry("바르셀로나", "Barcelona"),
+          Map.entry("베를린", "Berlin"),
+          Map.entry("프라하", "Prague"),
+          Map.entry("빈", "Vienna"),
+          Map.entry("취리히", "Zurich"),
+          Map.entry("브뤼셀", "Brussels"),
+          Map.entry("암스테르담", "Amsterdam")
+  );
+  private boolean isInKorea(double lat, double lon){
+    return lat >= 33.0 && lat <= 39.0 && lon >= 124.0 && lon <= 132.0;
+  }
 
   private String normQuery(String q){
     if (q==null) return "nearby";
@@ -88,7 +112,11 @@ public class PlaceSearchService {
       String s = redis.opsForValue().get(ck);
       if (s != null) {
         double[] xy = om.readValue(s, double[].class);
-        return Optional.ofNullable(xy);
+        // 캐시가 한국 내 좌표고, 한글→영문 매핑 대상이면 무시하고 재조회 (해외 도시 한글 입력 교정)
+        if (xy != null && (!isInKorea(xy[0], xy[1]) || !KO_EN_CITY.containsKey(city))) {
+          return Optional.of(xy);
+        }
+        // else: proceed to refresh
       }
     } catch (Exception ignored) {}
 
@@ -101,6 +129,46 @@ public class PlaceSearchService {
       }
     }
     try {
+      // 1) Nominatim 우선
+      try {
+        String urlNom = "https://nominatim.openstreetmap.org/search?format=json&q={q}&limit=1";
+        HttpHeaders hn = new HttpHeaders();
+        hn.set("Accept-Language", "ko,en");
+        hn.set("User-Agent", "TripMate/1.0 (+http://localhost)");
+        ResponseEntity<List> rn = rest.exchange(urlNom, HttpMethod.GET, new HttpEntity<>(hn), List.class, city);
+        List list = rn.getBody();
+        if (list != null && !list.isEmpty()) {
+          Map m = (Map) list.get(0);
+          Object slat = m.get("lat"); Object slon = m.get("lon");
+          if (slat != null && slon != null) {
+            double lat = Double.parseDouble(String.valueOf(slat));
+            double lon = Double.parseDouble(String.valueOf(slon));
+            // 한국 내 좌표로 잘못 매칭되면 한글→영문 매핑으로 재시도
+            if (isInKorea(lat, lon)) {
+              String mapped = KO_EN_CITY.get(city);
+              if (mapped != null) {
+                ResponseEntity<List> rn2 = rest.exchange(urlNom, HttpMethod.GET, new HttpEntity<>(hn), List.class, mapped);
+                List list2 = rn2.getBody();
+                if (list2 != null && !list2.isEmpty()) {
+                  Map m2 = (Map) list2.get(0);
+                  Object slat2 = m2.get("lat"); Object slon2 = m2.get("lon");
+                  if (slat2 != null && slon2 != null) {
+                    lat = Double.parseDouble(String.valueOf(slat2));
+                    lon = Double.parseDouble(String.valueOf(slon2));
+                  }
+                }
+              }
+            }
+            double[] xy = new double[]{ lat, lon };
+            try { redis.opsForValue().set(ck, om.writeValueAsString(xy), TTL_GEOCODE); } catch (Exception ignored) {}
+            return Optional.of(xy);
+          }
+        }
+      } catch (Exception e) {
+        log.warn("Nominatim geocode failed, fallback to Kakao. q={} msg={}", city, e.getMessage());
+      }
+
+      // 2) Kakao 폴백
       String url = "https://dapi.kakao.com/v2/local/search/keyword.json?query={q}&size=1";
       HttpHeaders h = new HttpHeaders(); h.set("Authorization", "KakaoAK " + kakaoKey);
       ResponseEntity<Map> r = rest.exchange(url, HttpMethod.GET, new HttpEntity<>(h), Map.class, city);
@@ -116,23 +184,40 @@ public class PlaceSearchService {
   }
 
   public List<PlaceDto> search(String q, double lat, double lon, int limit, Integer rateOpt) {
-    // Try merged cache first
+    int rate = (rateOpt != null ? rateOpt : otmDefaultRate);
+
+    // 키워드가 있는 경우: 카카오 우선, 카카오가 없으면 OTM을 간단 필터링
+    if (q != null && !q.isBlank()) {
+      List<PlaceDto> kakao = kakaoKeyword(q, lat, lon, limit);
+      if (!kakao.isEmpty()) {
+        return kakao;
+      }
+      // Kakao 결과 없으면 OTM 결과를 간단 키워드 필터(대/소문자 무시)
+      String qLower = q.toLowerCase(Locale.ROOT);
+      List<PlaceDto> otm = otmNearby(lat, lon, limit, rate);
+      List<PlaceDto> filtered = new ArrayList<>();
+      for (PlaceDto p : otm) {
+        String name = p.getName();
+        if (name != null && name.toLowerCase(Locale.ROOT).contains(qLower)) {
+          filtered.add(p);
+        }
+      }
+      return filtered;
+    }
+
+    // 키워드가 없는 경우(주변): 병합 + 정렬 (캐시 사용)
     String mk = keyMerged(q, lat, lon);
     List<PlaceDto> merged = Optional.ofNullable(getL1(mk)).orElseGet(() -> getL2(mk));
     if (merged != null) return merged;
 
-    // Prevent stampede on merged build
     String lk = lockKey(mk);
     if (!acquireLock(lk, Duration.ofSeconds(15))) {
-      // someone else is building; wait up to 3s
       List<PlaceDto> waited = spinWaitCache(() -> getL2(mk), 60, 50);
       if (waited != null) return waited;
     }
 
-    int rate = (rateOpt != null ? rateOpt : otmDefaultRate);
-    List<PlaceDto> kakao = (q==null||q.isBlank())? List.of() : kakaoKeyword(q, lat, lon, limit);
     List<PlaceDto> otm   = otmNearby(lat, lon, limit, rate);
-    List<PlaceDto> out = mergeRank(kakao, otm, lat, lon);
+    List<PlaceDto> out = mergeRank(List.of(), otm, lat, lon);
     putL1(mk, out); putL2(mk, out, TTL_MERGED);
     releaseLock(lk);
     return out;
@@ -192,7 +277,8 @@ public class PlaceSearchService {
   private List<PlaceDto> kakaoFetchKeyword(String q, double lat, double lon, int size) {
     String url = "https://dapi.kakao.com/v2/local/search/keyword.json?query={q}&y={lat}&x={lon}&radius=20000&size={size}";
     HttpHeaders h = new HttpHeaders(); h.set("Authorization", "KakaoAK " + kakaoKey);
-    ResponseEntity<Map> r = rest.exchange(url, HttpMethod.GET, new HttpEntity<>(h), Map.class, Map.of("q", q, "lat", lat, "lon", lon, "size", Math.min(size,45)));
+    // Kakao 'size' 최대값은 15
+    ResponseEntity<Map> r = rest.exchange(url, HttpMethod.GET, new HttpEntity<>(h), Map.class, Map.of("q", q, "lat", lat, "lon", lon, "size", Math.min(size,15)));
     List<Map<String,Object>> docs = (List<Map<String,Object>>) r.getBody().getOrDefault("documents", List.of());
     List<PlaceDto> out = new ArrayList<>();
     for (var d : docs) {

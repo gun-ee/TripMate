@@ -22,12 +22,15 @@ export default function TripEditPage() {
   const [localDays, setLocalDays] = useState<Day[]>([]);
   const [history, setHistory] = useState<Day[][]>([]);
   const [future, setFuture] = useState<Day[][]>([]);
+  const [startInput, setStartInput] = useState<string>('09:00');
+  const [endInput, setEndInput] = useState<string>('18:00');
 
   const timetable = useMemo(() => {
     const d = localDays[active];
     if (!d) return [] as Array<{arrive: string; depart: string; travelMin: number}>;
-    const start = d.startTime?.slice(0,5) || '09:00';
-    const end = d.endTime?.slice(0,5) || '18:00';
+    // UI 상태(startInput/endInput)를 우선 사용하여 저장 직후에도 즉시 반영
+    const start = startInput || (d.startTime as unknown as string)?.slice(0,5) || '09:00';
+    const end = endInput || (d.endTime as unknown as string)?.slice(0,5) || '18:00';
     const toMinutes = (s: string) => { const [h,m]=s.split(':').map(x=>parseInt(x,10)); return h*60+(m||0); };
     const toHHMM = (m: number) => { const h=Math.floor(m/60), mm=m%60; return `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`; };
     const legs = d.legs ?? [];
@@ -51,7 +54,20 @@ export default function TripEditPage() {
       t = depart;
     });
     return out;
-  }, [localDays, active]);
+  }, [localDays, active, startInput, endInput]);
+
+  // 일차 전환 또는 서버 재조회 시 입력값 동기화
+  useEffect(() => {
+    const d = localDays[active];
+    if (d) {
+      const s = (d.startTime as unknown as string)?.slice(0,5) || startInput;
+      const e = (d.endTime as unknown as string)?.slice(0,5) || endInput;
+      // 현재 active 일차에 대해서만 입력값 동기화
+      setStartInput(s);
+      setEndInput(e);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, localDays]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -61,6 +77,12 @@ export default function TripEditPage() {
       const { data } = await axios.get<TripEditView>(`/trips/${id}/edit-view`);
       setTrip(data);
       setLocalDays(data.days);
+      // 초기 시간 입력값 동기화
+      const sd = data.days?.[0];
+      if (sd) {
+        setStartInput((sd.startTime as unknown as string)?.slice(0,5) || '09:00');
+        setEndInput((sd.endTime as unknown as string)?.slice(0,5) || '18:00');
+      }
     })();
   }, []);
 
@@ -125,19 +147,19 @@ export default function TripEditPage() {
             <div className="day-header">
               <div className="day-title">{trip.days[active]?.dayIndex}일차</div>
               <div className="day-date">{trip.days[active]?.date}</div>
-              <div className="day-range">{trip.days[active]?.startTime?.slice(0,5)} ~ {trip.days[active]?.endTime?.slice(0,5)}</div>
+              <div className="day-range">{startInput} ~ {endInput}</div>
             </div>
             <div className="place-item">
               <div className="place-actions" style={{gap:8}}>
                 <label>시작</label>
-                <input type="time" defaultValue={trip.days[active]?.startTime?.slice(0,5) || '09:00'} id="startT" />
+                <input type="time" value={startInput} onChange={(e)=>setStartInput(e.target.value)} />
                 <label>종료</label>
-                <input type="time" defaultValue={trip.days[active]?.endTime?.slice(0,5) || '18:00'} id="endT" />
+                <input type="time" value={endInput} onChange={(e)=>setEndInput(e.target.value)} />
                 <button className="chip" onClick={async () => {
                   const id = new URLSearchParams(location.search).get('id');
                   if (!id) return;
-                  const start = (document.getElementById('startT') as HTMLInputElement).value;
-                  const end = (document.getElementById('endT') as HTMLInputElement).value;
+                  const start = startInput;
+                  const end = endInput;
                   await axios.put(`/trips/${id}/days/${trip.days[active].dayIndex}`, null, { params: { startTime: start, endTime: end }});
                   await axios.post(`/trips/${id}/days/${trip.days[active].dayIndex}/recalc`);
                   const { data } = await axios.get<TripEditView>(`/trips/${id}/edit-view`);
@@ -225,9 +247,8 @@ export default function TripEditPage() {
           </div>
         </div>
 
-        {/* 우측: 지도 */}
+        {/* 우측: 지도 (헤더 없이 전체 채움) */}
         <div className="results-wrap">
-          <div className="results-header">지도</div>
           <div style={{width:'100%', height:'100%'}}>
             <MapContainer center={center} zoom={11} style={{ width: '100%', height: '100%' }} scrollWheelZoom>
               <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />

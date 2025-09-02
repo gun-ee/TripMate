@@ -90,7 +90,7 @@ export default function PlanPage() {
   const [isPlanningStarted, setIsPlanningStarted] = useState(false);
 
   /** 1) 도시/날짜 */
-  const [cityQuery, setCityQuery] = useState('서울');
+  const [cityQuery, setCityQuery] = useState('');
   const [cityCoord, setCityCoord] = useState<[number, number] | null>(null);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
@@ -127,7 +127,7 @@ export default function PlanPage() {
   /** 도시 지오코딩(서버 경유 - CORS 회피) */
   const geocodeCity = async (q: string): Promise<[number, number] | null> => {
     try {
-      const { data } = await axios.get<{ lat: number; lng: number }>('places/geocodeCity', { params: { q } });
+      const { data } = await axios.get<{ lat: number; lng: number }>('/places/geocodeCity', { params: { q } });
       if (typeof data?.lat === 'number' && typeof data?.lng === 'number') {
         return [data.lat, data.lng];
       }
@@ -150,7 +150,7 @@ export default function PlanPage() {
   const fetchNearby = async (lat: number, lon: number) => {
     setLoading(true); setErrorMsg('');
     try {
-      const { data } = await axios.get<Place[]>('places/nearby', { params: { lat, lon, limit, rate } });
+      const { data } = await axios.get<Place[]>('/places/nearby', { params: { lat, lon, limit, rate } });
       setPlaces(Array.isArray(data) ? data : []);
     } catch { setErrorMsg('주변 장소 조회 중 오류가 발생했습니다.'); }
     finally { setLoading(false); }
@@ -158,7 +158,7 @@ export default function PlanPage() {
   const fetchSearch = async (lat: number, lon: number, q: string) => {
     setLoading(true); setErrorMsg('');
     try {
-      const { data } = await axios.get<Place[]>('places/search', { params: { q, lat, lon, limit, rate } });
+      const { data } = await axios.get<Place[]>('/places/search', { params: { q, lat, lon, limit, rate } });
       setPlaces(Array.isArray(data) ? data : []);
     } catch { setErrorMsg('검색 처리 중 오류가 발생했습니다.'); }
     finally { setLoading(false); }
@@ -179,6 +179,9 @@ export default function PlanPage() {
     if (!coord) return alert('도시를 찾지 못했습니다.');
     setCityCoord(coord);
     setCenter(coord); // SetViewOnChange가 지도 이동 → moveend 발생 → 자동검색 실행
+    // 지도 이동 이벤트를 기다리지 않고, 도시 좌표 기준으로 즉시 주변검색/검색 실행
+    if (keyword.trim()) await fetchSearch(coord[0], coord[1], keyword.trim());
+    else await fetchNearby(coord[0], coord[1]);
 
     // 날짜→일수
     let dayCount = 1;
@@ -215,10 +218,27 @@ export default function PlanPage() {
       return next;
     });
   };
-  const markAsLodging = (d: number, idx: number) => {
+  const toggleLodging = (d: number, idx: number) => {
     setDays(prev => {
       const next = [...prev];
-      next[d] = next[d].map((s, i) => ({ ...s, isLodging: i === idx }));
+      const cur = [...(next[d] ?? [])];
+      
+      // 기존 데이터에 isLodging 속성이 없을 수 있으므로 안전하게 처리
+      const currentItem = cur[idx];
+      if (!currentItem) return prev;
+      
+      const isOn = !!currentItem.isLodging;
+      
+      if (isOn) {
+        // 해제: 선택 항목만 false로
+        cur[idx] = { ...currentItem, isLodging: false };
+      } else {
+        // 설정: 해당 항목만 true, 나머지는 false
+        for (let i = 0; i < cur.length; i++) {
+          cur[i] = { ...cur[i], isLodging: i === idx };
+        }
+      }
+      next[d] = cur;
       return next;
     });
   };
@@ -493,7 +513,9 @@ export default function PlanPage() {
       ) : (
         /* 기존 여행계획짜기 화면 */
         <>
+        
           {/* 상단 바 */}
+          {/*
           <div className="topbar">
             <div className="brand">TRIPMATE</div>
             <div className="grow" />
@@ -501,7 +523,7 @@ export default function PlanPage() {
             <button className="btn ghost" onClick={exportPlan}>전체 계획 출력</button>
             <button className="btn primary" onClick={savePlan}>DB 저장</button>
           </div>
-
+          */}
           {/* 도시/날짜/검색/설정 */}
           <div className="plan-controls">
             <input className="city-input" placeholder="도시(제주, 파리, 독일…)"
@@ -573,9 +595,7 @@ export default function PlanPage() {
                         <b>{p.name ?? 'Unknown'}</b>
                         {p.tags && <div style={{ marginTop: 4, fontSize: 12 }}>{p.tags}</div>}
                         <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          {[0,1,2,3,4].map(d => (
-                            <button key={d} className="chip" onClick={() => addToDay(d, p, idx)}>+ {d+1}일차</button>
-                          ))}
+                          <button className="chip" onClick={() => addToDay(activeDay, p, idx)}>추가</button>
                           <button className="chip" onClick={() => addToDay(activeDay, p, idx, true)}>숙소</button>
                         </div>
                       </Popup>
@@ -603,11 +623,8 @@ export default function PlanPage() {
                       <div key={k} className="place-item">
                         <div className="place-title">{p.name ?? 'Unknown'}</div>
                         {p.tags && <div className="place-tags">{p.tags}</div>}
-                        <div className="place-actions">
-                          {[1,2,3,4,5].map(d => (
-                            <button key={d} className="chip" onClick={() => addToDay(d-1, p, idx)}>+ {d}일차</button>
-                          ))}
-                          <button className="chip" onClick={() => addToDay(activeDay, p, idx, true)}>숙소</button>
+                        <div className="place-actions" style={{justifyContent:'flex-end'}}>
+                          <button className="chip" onClick={() => addToDay(activeDay, p, idx)}>추가</button>
                         </div>
                       </div>
                     );
@@ -626,7 +643,7 @@ export default function PlanPage() {
                   {(days[activeDay] ?? []).map((s, i) => (
                     <div key={`${s.id}:${i}`} className="place-item">
                       <div className="place-title">
-                        {i + 1}. {s.name} {s.isLodging && <span className="badge">숙소</span>}
+                        {i + 1}. {s.name} {!!s.isLodging && <span className="badge">숙소</span>}
                       </div>
                       <div className="place-tags">
                         체류 {s.durationMin}분 / 도착 {HHMM(timetable[i]?.arrive ?? 0)} ~ 출발 {HHMM(timetable[i]?.depart ?? 0)}
@@ -634,7 +651,9 @@ export default function PlanPage() {
                       <div className="place-actions">
                         <button className="chip" onClick={() => reorder(activeDay, i, -1)}>▲</button>
                         <button className="chip" onClick={() => reorder(activeDay, i, 1)}>▼</button>
-                        <button className="chip" onClick={() => markAsLodging(activeDay, i)}>숙소</button>
+                        <button className="chip" onClick={() => toggleLodging(activeDay, i)}>
+                          {!!s.isLodging ? '숙소 해제' : '숙소 설정'}
+                        </button>
                         <button className="chip" onClick={() => setDuration(activeDay, i, s.durationMin + 30)}>+30m</button>
                         <button className="chip" onClick={() => setDuration(activeDay, i, Math.max(0, s.durationMin - 30))}>-30m</button>
                         <button className="chip" onClick={() => removeStop(activeDay, i)}>삭제</button>

@@ -21,7 +21,7 @@
 }
 
 .trip-plan-container {
-  width: 100vw;
+  width: 100%; /* 100vw -> 100% */
   min-height: calc(100vh - 80px);
   background-color: var(--background-color);
   display: flex;

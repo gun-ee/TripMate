@@ -1,14 +1,15 @@
 /* 헤더 전체 */
 .main-navbar {
-  width: 100vw;
+  width: 100%; /* 100vw는 스크롤바 폭 포함으로 가로 스크롤 유발 → 100%로 교체 */
   background: #e0f2f1; /* 민트색 배경 */
   border-bottom: 1px solid #b2dfdb;
   margin: 0;
   padding: 0;
   position: relative;
   z-index: 100;
-  height: 160px !important;
-  min-height: 160px !important;
+  height: 120px !important;
+  min-height: 120px !important;
+  overflow: hidden; /* 로고가 헤더 높이를 넘지 않도록 절단 */
 }
 
 /* 프로필 이미지 확대 모달 */
@@ -100,19 +101,27 @@
 
 .main-navbar-container {
   margin: 0 auto;
-  padding: 0 64px;
+  padding: 0 24px; /* 좌우 패딩 축소로 좁은 해상도에서도 100% 맞춤 */
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  height: 160px !important;
-  min-height: 160px !important;
+  height: 120px !important;
+  min-height: 120px !important;
+}
+
+.main-navbar-logo { /* 로고 컨테이너를 헤더 높이에 맞춤 */
+  height: 100%;
+  display: flex;
+  align-items: center;
 }
 
 .main-navbar-logo img {
-  height: 100%;
-  max-height: 140px;
+  height: 100%;          /* 헤더 세로 높이에 딱 맞춤 */
+  max-height: 100%;
+  width: auto;           /* 가로는 비율 유지 */
   display: block;
-  padding-top: 12px;
+  padding: 0;            /* 여백 제거 */
+  object-fit: contain;   /* 비율 유지 */
 }
 
 .main-navbar-menu,
