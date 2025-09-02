@@ -13,6 +13,7 @@ import RegionChatExample from './components/RegionChatExample';
 // import TripPlanPage from './components/TripPlan';
 import PlanPage from './components/PlanPage';
 import TripResultPage from './components/TripResultPage';
+import MyPage from './components/MyPage';
 import './App.css';
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
               <Route path="/region-chat" element={<RegionChatExample />} />
               <Route path="/plan" element={<PlanPage />} />
               <Route path="/trip/result" element={<TripResultPage />} />
+              <Route path="/members/mypage" element={<MyPage />} />
             </Routes>
           </div>
         </Router>

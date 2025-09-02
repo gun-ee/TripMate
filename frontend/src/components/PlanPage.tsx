@@ -16,7 +16,7 @@ import type { LatLngExpression } from 'leaflet';
 import axios from '../api/axios';
 import MapAutoResize from '../components/MapAutoResize';   // 교체본 사용(미세리사이즈 무시)
 import MapMoveWatcher from '../components/MapMoveWatcher'; // 교체본 사용(쿨다운/미세이동 가드)
-import PDFExport from '../components/PDFExport';
+
 import './PlanPage.css';
 
 /* =========================
@@ -375,14 +375,7 @@ export default function PlanPage() {
     });
   }, [days, activeDay, dayStart, dayEnd]);
 
-  /** 출력/저장 */
-  const exportPlan = () => {
-    const payload = { city: cityQuery, cityCoord, startDate, endDate, routeMode, transport, dayStart, dayEnd, days };
-    const txt = JSON.stringify(payload, null, 2);
-    console.log('TRIP PLAN:', txt);
-    navigator.clipboard?.writeText(txt).catch(() => {});
-    alert('콘솔에 출력했고, 클립보드에도 복사 시도했습니다.');
-  };
+  /** 저장 */
 
   // 특정 일차에 추가된 장소들을 API 저장 포맷으로 변환
   type CreateTripItemRequest = {
@@ -612,7 +605,7 @@ export default function PlanPage() {
             <div className="brand">TRIPMATE</div>
             <div className="grow" />
             <button className="btn ghost" onClick={() => setIsPlanningStarted(false)}>처음으로</button>
-            <button className="btn ghost" onClick={exportPlan}>전체 계획 출력</button>
+
             <button className="btn primary" onClick={savePlan}>DB 저장</button>
           </div>
           */}
@@ -761,15 +754,6 @@ export default function PlanPage() {
           <div className="plan-footer">
             <div className="hint">교통수단: {transport} / 경로: {routeMode}</div>
             <div className="grow" />
-            <button className="btn ghost" onClick={exportPlan}>전체 계획 출력</button>
-            <PDFExport 
-              days={days}
-              cityQuery={cityQuery}
-              startDate={startDate}
-              endDate={endDate}
-              dayStart={dayStart}
-              dayEnd={dayEnd}
-            />
             <button className="btn" onClick={optimizeActiveDay}>현재 일차 최적화</button>
             <button className="btn primary" onClick={savePlan}>
               {editTripId ? '여행계획 수정' : '여행계획 저장'}
