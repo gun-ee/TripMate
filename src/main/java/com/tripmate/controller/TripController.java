@@ -33,6 +33,16 @@ public class TripController {
         return Map.of("id", t.getId(), "title", t.getTitle());
     }
 
+    @PutMapping("/{tripId}")
+    public Map<String, Object> update(@PathVariable Long tripId, @RequestBody CreateTripRequest req) {
+        // SecurityContext에서 직접 인증 정보 가져오기
+        CustomUserDetails userDetails = (CustomUserDetails) SecurityContextHolder.getContext()
+            .getAuthentication().getPrincipal();
+        Member member = userDetails.getMember(); // Member 객체 가져오기
+        Trip t = svc.updateTrip(tripId, req, member);
+        return Map.of("id", t.getId(), "title", t.getTitle());
+    }
+
     @GetMapping
     public List<Trip> list() {
         // SecurityContext에서 직접 인증 정보 가져오기

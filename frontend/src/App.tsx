@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { PostProvider } from './contexts/PostContext';
@@ -12,7 +12,7 @@ import TripTalk from './components/TripTalk';
 import RegionChatExample from './components/RegionChatExample';
 // import TripPlanPage from './components/TripPlan';
 import PlanPage from './components/PlanPage';
-import TripEditPage from './components/TripEditPage';
+import TripResultPage from './components/TripResultPage';
 import './App.css';
 
 function App() {
@@ -31,7 +31,7 @@ function App() {
               <Route path="/triptalk" element={<TripTalk />} />
               <Route path="/region-chat" element={<RegionChatExample />} />
               <Route path="/plan" element={<PlanPage />} />
-              <Route path="/trip/edit" element={<TripEditPage />} />
+              <Route path="/trip/result" element={<TripResultPage />} />
             </Routes>
           </div>
         </Router>

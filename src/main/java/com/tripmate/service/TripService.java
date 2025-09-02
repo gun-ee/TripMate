@@ -519,4 +519,89 @@ public class TripService {
         // 이동 구간 재생성 (순서가 바뀌었으므로)
         createTripLegs(tripDay);
     }
+
+    @Transactional
+    public Trip updateTrip(Long tripId, CreateTripRequest r, Member member) {
+        // 기존 여행 조회
+        Trip trip = tripRepo.findById(tripId)
+                .orElseThrow(() -> new IllegalArgumentException("Trip not found: " + tripId));
+        
+        // 권한 확인 (본인의 여행인지)
+        if (!trip.getMember().getId().equals(member.getId())) {
+            throw new IllegalArgumentException("Unauthorized access to trip: " + tripId);
+        }
+        
+        // 기존 일정 삭제 (외래키 제약 조건을 고려한 순서)
+        List<TripDay> existingDays = dayRepo.findByTripOrderByDayIndexAsc(trip);
+        
+        if (!existingDays.isEmpty()) {
+            // 1. 모든 TripLeg 먼저 삭제 (자식 테이블)
+            for (TripDay day : existingDays) {
+                legRepo.deleteByTripDay(day);
+            }
+            
+            // 2. 모든 TripItem 삭제 (부모 테이블)
+            for (TripDay day : existingDays) {
+                itemRepo.deleteByTripDay(day);
+            }
+            
+            // 3. 모든 TripDay 삭제 (최상위 테이블) - 한 번에 삭제
+            dayRepo.deleteByTrip(trip);
+        }
+        
+        // 여행 기본 정보 업데이트
+        trip.setTitle(r.getTitle());
+        trip.setStartDate(r.getStartDate());
+        trip.setEndDate(r.getEndDate());
+        trip.setCity(r.getCity());
+        trip.setCityLat(r.getCityLat());
+        trip.setCityLng(r.getCityLng());
+        trip.setDefaultStartTime(r.getDefaultStartTime());
+        trip.setDefaultEndTime(r.getDefaultEndTime());
+        trip.setDefaultTransportMode(r.getDefaultTransportMode());
+        
+        // 여행 저장
+        trip = tripRepo.save(trip);
+        
+        // 새로운 일정 생성 (createTrip과 동일한 로직)
+        for (CreateTripDayRequest dayReq : r.getDays()) {
+            TripDay day = TripDay.builder()
+                    .trip(trip)
+                    .dayIndex(dayReq.getDayIndex())
+                    .date(dayReq.getDate())
+                    .startTime(dayReq.getStartTime())
+                    .endTime(dayReq.getEndTime())
+                    .build();
+            day = dayRepo.save(day);
+            
+            // 아이템들 생성
+            for (CreateTripItemRequest itemReq : dayReq.getItems()) {
+                TripItem item = TripItem.builder()
+                        .tripDay(day)
+                        .sortOrder(itemReq.getSortOrder())
+                        .type(itemReq.getType())
+                        .placeSource(itemReq.getPlaceSource())
+                        .placeRef(itemReq.getPlaceRef())
+                        .nameSnapshot(itemReq.getNameSnapshot())
+                        .lat(itemReq.getLat())
+                        .lng(itemReq.getLng())
+                        .addrSnapshot(itemReq.getAddrSnapshot())
+                        .categorySnapshot(itemReq.getCategorySnapshot())
+                        .photoUrlSnapshot(itemReq.getPhotoUrlSnapshot())
+                        .snapshot(itemReq.getSnapshot() != null ? itemReq.getSnapshot() : "{}")
+                        .stayMin(itemReq.getStayMin())
+                        .notes(itemReq.getNotes())
+                        .capturedAt(LocalDateTime.now())
+                        .openTime(itemReq.getOpenTime())
+                        .closeTime(itemReq.getCloseTime())
+                        .build();
+                itemRepo.save(item);
+            }
+            
+            // 이동 구간 생성
+            createTripLegs(day);
+        }
+        
+        return trip;
+    }
 }

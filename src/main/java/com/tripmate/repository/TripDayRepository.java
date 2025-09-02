@@ -3,9 +3,11 @@ package com.tripmate.repository;
 import com.tripmate.entity.TripDay;
 import com.tripmate.entity.Trip;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -26,4 +28,10 @@ public interface TripDayRepository extends JpaRepository<TripDay, Long> {
     
     // 여행별 일자 수
     long countByTrip(Trip trip);
+    
+    // 일자별 삭제
+    @Modifying
+    @Transactional
+    @Query("delete from TripDay t where t.trip = :trip")
+    void deleteByTrip(@Param("trip") Trip trip);
 }

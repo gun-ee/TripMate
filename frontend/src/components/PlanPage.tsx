@@ -89,6 +89,7 @@ function SetViewOnChange({ center, zoom }: { center: LatLngExpression; zoom: num
 export default function PlanPage() {
   /** 0) 화면 상태 */
   const [isPlanningStarted, setIsPlanningStarted] = useState(false);
+  const [editTripId, setEditTripId] = useState<number | null>(null);
 
   /** 1) 도시/날짜 */
   const [cityQuery, setCityQuery] = useState('');
@@ -121,9 +122,71 @@ export default function PlanPage() {
   useEffect(() => {
     if (didInit.current) return;
     didInit.current = true;
-    fetchNearby(mapLat, mapLon);
+    
+    // 편집 모드 확인
+    const params = new URLSearchParams(location.search);
+    const editId = params.get('editId');
+    if (editId) {
+      setEditTripId(parseInt(editId));
+      loadExistingTrip(parseInt(editId));
+    } else {
+      fetchNearby(mapLat, mapLon);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 기존 여행 데이터 로드
+  const loadExistingTrip = async (tripId: number) => {
+    try {
+      const { data } = await axios.get(`/trips/${tripId}/edit-view`);
+      setCityQuery(data.city);
+      setStartDate(data.startDate);
+      setEndDate(data.endDate);
+      setDayStart(data.defaultStartTime);
+      setDayEnd(data.defaultEndTime);
+      
+      // 기존 일정 데이터를 PlanPage 형식으로 변환
+      const convertedDays: ItinStop[][] = data.days.map((day: { id: number; items: Array<{ id: number; nameSnapshot: string; lat: number; lng: number; stayMin?: number }> }) => 
+        day.items.map((item: { id: number; nameSnapshot: string; lat: number; lng: number; stayMin?: number }) => ({
+          id: String(item.id),
+          name: item.nameSnapshot,
+          lat: item.lat,
+          lon: item.lng,
+          durationMin: item.stayMin || 60,
+          isLodging: false
+        }))
+      );
+      
+      setDays(convertedDays);
+      setIsPlanningStarted(true);
+      
+      // 도시명으로 지오코딩하여 지도 중심 설정
+      console.log('편집 모드: 도시명으로 지오코딩 시도:', data.city);
+      const coords = await geocodeCity(data.city);
+      if (coords) {
+        console.log('지오코딩 성공:', coords);
+        setCityCoord(coords);
+        setCenter(coords); // 지도 중심도 함께 설정
+        // 지도 중심 변경 후 주변 장소 검색
+        setTimeout(() => {
+          fetchNearby(coords[0], coords[1]);
+        }, 100);
+      } else if (convertedDays[0]?.[0]) {
+        // 지오코딩 실패 시 첫 번째 장소로 폴백
+        console.log('지오코딩 실패, 첫 번째 장소로 폴백:', convertedDays[0][0]);
+        const firstPlace = convertedDays[0][0];
+        const fallbackCoords = [firstPlace.lat, firstPlace.lon] as [number, number];
+        setCityCoord(fallbackCoords);
+        setCenter(fallbackCoords); // 지도 중심도 함께 설정
+        setTimeout(() => {
+          fetchNearby(firstPlace.lat, firstPlace.lon);
+        }, 100);
+      }
+    } catch (error) {
+      console.error('기존 여행 데이터 로드 실패:', error);
+      fetchNearby(mapLat, mapLon);
+    }
+  };
 
   /** 도시 지오코딩(서버 경유 - CORS 회피) */
   const geocodeCity = async (q: string): Promise<[number, number] | null> => {
@@ -416,39 +479,67 @@ export default function PlanPage() {
         return;
       }
       
-              // 여행 일정 데이터 구성 - 실제 사용자가 선택한 장소들로 구성
-        const tripData = {
-            title: `${cityQuery} 여행`,
-            startDate,
-            endDate,
-            city: cityQuery,
-            cityLat: cityCoord?.[0],
-            cityLng: cityCoord?.[1],
-            defaultStartTime: '09:00',
-            defaultEndTime: '18:00',
-            defaultTransportMode: 'CAR',
-            days: Array.from({ length: days.length }, (_, i) => ({
-              dayIndex: i + 1,
-              date: formatDateOffset(startDate, i),
-              startTime: dayStart,
-              endTime: dayEnd,
-              items: getDayItems(i + 1)
-            }))
-        };
-        
-        const { data } = await axios.post('/trips', tripData, {
+      // 여행 일정 데이터 구성 - 실제 사용자가 선택한 장소들로 구성
+      const tripData = {
+          title: `${cityQuery} 여행`,
+          startDate,
+          endDate,
+          city: cityQuery,
+          cityLat: cityCoord?.[0],
+          cityLng: cityCoord?.[1],
+          defaultStartTime: dayStart,
+          defaultEndTime: dayEnd,
+          defaultTransportMode: 'CAR',
+          days: Array.from({ length: days.length }, (_, i) => ({
+            dayIndex: i + 1,
+            date: formatDateOffset(startDate, i),
+            startTime: dayStart,
+            endTime: dayEnd,
+            items: getDayItems(i + 1)
+          }))
+      };
+      
+      let data;
+      if (editTripId) {
+        // 편집 모드: 기존 여행 업데이트
+        data = await axios.put(`/trips/${editTripId}`, tripData, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
+      } else {
+        // 새 여행 생성
+        data = await axios.post('/trips', tripData, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+      }
       
-      // 저장 직후 편집 화면으로 이동
-      const id = (data && (data as { id?: number }).id) || null;
+      // 저장 직후 결과 화면으로 이동
+      console.log('API 응답 데이터:', data);
+      console.log('편집 모드 ID:', editTripId);
+      
+      // API 응답에서 ID 추출
+      let id = editTripId;
+      if (!id && data && (data as any).data) {
+        id = (data as any).data.id;
+      }
+      
+      console.log('최종 ID:', id);
+      
       if (id) {
-        window.location.href = `/trip/edit?id=${id}`;
+        window.location.href = `/trip/result?id=${id}`;
         return;
       }
-      alert('저장 완료');
+      
+      // ID가 없는 경우 임시 해결책: 저장 성공 메시지와 함께 새로고침
+      alert('저장 완료! 잠시 후 결과 페이지로 이동합니다.');
+      
+      // 2초 후 메인 페이지로 이동 (또는 사용자가 직접 결과 페이지로 이동)
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 2000);
     } catch (e: unknown) { 
       console.error(e);
       // 타입 단언 최소화
@@ -680,7 +771,9 @@ export default function PlanPage() {
               dayEnd={dayEnd}
             />
             <button className="btn" onClick={optimizeActiveDay}>현재 일차 최적화</button>
-            <button className="btn primary" onClick={savePlan}>여행계획 저장</button>
+            <button className="btn primary" onClick={savePlan}>
+              {editTripId ? '여행계획 수정' : '여행계획 저장'}
+            </button>
           </div>
         </>
       )}

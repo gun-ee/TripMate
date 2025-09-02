@@ -12,26 +12,21 @@ type Day = {
   items: Array<{ id: number; sortOrder: number; nameSnapshot: string; stayMin?: number; lat: number; lng: number; }>
   legs?: Array<{ id: number; fromItemId: number; toItemId: number; distanceM?: number; durationSec?: number; routePolyline?: string | null }>;
 };
-type TripEditView = {
+type TripResultView = {
   id: number; title: string; city: string; startDate: string; endDate: string;
   defaultStartTime: string; defaultEndTime: string; days: Day[];
 };
 
-export default function TripEditPage() {
-  const [trip, setTrip] = useState<TripEditView | null>(null);
+export default function TripResultPage() {
+  const [trip, setTrip] = useState<TripResultView | null>(null);
   const [active, setActive] = useState(0);
   const [localDays, setLocalDays] = useState<Day[]>([]);
-  const [history, setHistory] = useState<Day[][]>([]);
-  const [future, setFuture] = useState<Day[][]>([]);
-  const [startInput, setStartInput] = useState<string>('09:00');
-  const [endInput, setEndInput] = useState<string>('18:00');
 
   const timetable = useMemo(() => {
     const d = localDays[active];
     if (!d) return [] as Array<{arrive: string; depart: string; travelMin: number}>;
-    // UI 상태(startInput/endInput)를 우선 사용하여 저장 직후에도 즉시 반영
-    const start = startInput || (d.startTime as unknown as string)?.slice(0,5) || '09:00';
-    const end = endInput || (d.endTime as unknown as string)?.slice(0,5) || '18:00';
+    const start = (d.startTime as unknown as string)?.slice(0,5) || '09:00';
+    const end = (d.endTime as unknown as string)?.slice(0,5) || '18:00';
     const toMinutes = (s: string) => { const [h,m]=s.split(':').map(x=>parseInt(x,10)); return h*60+(m||0); };
     const toHHMM = (m: number) => { const h=Math.floor(m/60), mm=m%60; return `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`; };
     const legs = d.legs ?? [];
@@ -55,20 +50,7 @@ export default function TripEditPage() {
       t = depart;
     });
     return out;
-  }, [localDays, active, startInput, endInput]);
-
-  // 일차 전환 또는 서버 재조회 시 입력값 동기화
-  useEffect(() => {
-    const d = localDays[active];
-    if (d) {
-      const s = (d.startTime as unknown as string)?.slice(0,5) || startInput;
-      const e = (d.endTime as unknown as string)?.slice(0,5) || endInput;
-      // 현재 active 일차에 대해서만 입력값 동기화
-      setStartInput(s);
-      setEndInput(e);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, localDays]);
+  }, [localDays, active]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -76,15 +58,9 @@ export default function TripEditPage() {
     
     if (!id) return;
     (async () => {
-      const { data } = await axios.get<TripEditView>(`/trips/${id}/edit-view`);
+      const { data } = await axios.get<TripResultView>(`/trips/${id}/edit-view`);
       setTrip(data);
       setLocalDays(data.days);
-      // 초기 시간 입력값 동기화
-      const sd = data.days?.[0];
-      if (sd) {
-        setStartInput((sd.startTime as unknown as string)?.slice(0,5) || '09:00');
-        setEndInput((sd.endTime as unknown as string)?.slice(0,5) || '18:00');
-      }
     })();
   }, []);
 
@@ -99,7 +75,7 @@ export default function TripEditPage() {
     if (!trip) return { days: [], cityQuery: '', startDate: '', endDate: '', dayStart: '09:00', dayEnd: '18:00' };
     
     const convertedDays = trip.days.map(day => {
-      // 실제 시간표 계산 (TripEditPage의 timetable 로직과 동일)
+      // 실제 시간표 계산 (TripResultPage의 timetable 로직과 동일)
       const start = day.startTime?.slice(0,5) || '09:00';
       const end = day.endTime?.slice(0,5) || '18:00';
       const toMinutes = (s: string) => { const [h,m]=s.split(':').map(x=>parseInt(x,10)); return h*60+(m||0); };
@@ -137,7 +113,7 @@ export default function TripEditPage() {
           arrive: toHHMM(arrive),
           depart: toHHMM(depart),
           travelMin: travel,
-          isLodging: false // TripEditPage에서는 숙소 정보가 없으므로 false로 설정
+          isLodging: false // TripResultPage에서는 숙소 정보가 없으므로 false로 설정
         };
       });
     });
@@ -152,80 +128,58 @@ export default function TripEditPage() {
     };
   };
 
+  const handleEditTrip = () => {
+    // 여행계획 페이지로 이동 (기존 데이터와 함께)
+    window.location.href = `/plan?editId=${trip?.id}`;
+  };
+
   if (!trip) return <div className="plan-page"><Header /><div style={{padding:20}}>불러오는 중…</div></div>;
 
   return (
     <div className="plan-page">
       <Header />
       <div className="plan-row" style={{ gridTemplateColumns: '0.3fr 1fr 1fr' }}>
-        {/* 상단 설정 바: 타임존 및 PDF 출력 */}
+        {/* 상단 설정 바: 편집 버튼 및 PDF 출력 */}
         <div className="topbar" style={{gridColumn: '1 / span 3'}}>
           <div className="grow" />
           <PDFExport {...convertToPDFFormat()} />
-          <label>타임존</label>
-          <select className="btn" defaultValue={trip.timeZone || 'Asia/Seoul'} onChange={async (e) => {
-            const id = new URLSearchParams(location.search).get('id');
-            if (!id) return;
-            await axios.put(`/trips/${trip.id}/timezone`, null, { params: { tz: e.target.value } });
-            alert('타임존 저장');
-          }}>
-            <option value="Asia/Seoul">Asia/Seoul</option>
-            <option value="Asia/Tokyo">Asia/Tokyo</option>
-            <option value="Europe/Paris">Europe/Paris</option>
-            <option value="America/Los_Angeles">America/Los_Angeles</option>
-          </select>
+          <button 
+            className="btn primary"
+            onClick={handleEditTrip}
+            style={{
+              backgroundColor: '#3498db',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold'
+            }}
+          >
+            ✏️ 여행 계획 편집
+          </button>
         </div>
-        {/* 좌측 일차 네비게이션 (형식만) */}
+        
+        {/* 좌측 일차 네비게이션 */}
         <div className="results-wrap" style={{minWidth:160}}>
           <div className="results-header">전체일정</div>
           <div className="results-list">
-            <div className="place-actions" style={{gap:8, marginBottom:8}}>
-              <button className="chip" onClick={() => {
-                if (history.length === 0) return;
-                const prev = history[history.length - 1];
-                setHistory(h => h.slice(0, -1));
-                setFuture(f => [...f, localDays]);
-                setLocalDays(prev);
-              }}>Undo</button>
-              <button className="chip" onClick={() => {
-                if (future.length === 0) return;
-                const next = future[future.length - 1];
-                setFuture(f => f.slice(0, -1));
-                setHistory(h => [...h, localDays]);
-                setLocalDays(next);
-              }}>Redo</button>
-            </div>
             {trip.days.map((d, i) => (
               <button key={d.id} className="chip" onClick={() => setActive(i)}>{d.dayIndex}일차</button>
             ))}
           </div>
         </div>
 
-        {/* 가운데: MYRO 유사 리스트 형식 */}
+        {/* 가운데: 일정 리스트 */}
         <div className="results-wrap">
           <div className="results-header">일정 (Day {trip.days[active]?.dayIndex})</div>
           <div className="results-list">
             <div className="day-header">
               <div className="day-title">{trip.days[active]?.dayIndex}일차</div>
               <div className="day-date">{trip.days[active]?.date}</div>
-              <div className="day-range">{startInput} ~ {endInput}</div>
-            </div>
-            <div className="place-item">
-              <div className="place-actions" style={{gap:8}}>
-                <label>시작</label>
-                <input type="time" value={startInput} onChange={(e)=>setStartInput(e.target.value)} />
-                <label>종료</label>
-                <input type="time" value={endInput} onChange={(e)=>setEndInput(e.target.value)} />
-                <button className="chip" onClick={async () => {
-                  const id = new URLSearchParams(location.search).get('id');
-                  if (!id) return;
-                  const start = startInput;
-                  const end = endInput;
-                  await axios.put(`/trips/${id}/days/${trip.days[active].dayIndex}`, null, { params: { startTime: start, endTime: end }});
-                  await axios.post(`/trips/${id}/days/${trip.days[active].dayIndex}/recalc`);
-                  const { data } = await axios.get<TripEditView>(`/trips/${id}/edit-view`);
-                  setTrip(data); setLocalDays(data.days);
-                }}>시간 저장/재계산</button>
+              <div className="day-range">
+                {(localDays[active]?.startTime as unknown as string)?.slice(0,5) || '09:00'} ~ {(localDays[active]?.endTime as unknown as string)?.slice(0,5) || '18:00'}
               </div>
             </div>
             <div className="timeline">
@@ -245,70 +199,15 @@ export default function TripEditPage() {
                   <div className="place-title">{it.nameSnapshot}</div>
                   {i>0 && <div className="meta">🚗 이동 {timetable[i]?.travelMin ?? 0}분</div>}
                   <div className="meta">체류 {(it.stayMin ?? 60)}분</div>
-                  <div className="actions">
-                  <button className="chip" onClick={() => {
-                    setHistory(h => [...h, localDays.map(d => ({...d, items: [...d.items]}))]);
-                    setFuture([]);
-                    setLocalDays(prev => {
-                      const next = [...prev]; const arr = [...(next[active]?.items ?? [])];
-                      if (i === 0) return prev; [arr[i-1], arr[i]] = [arr[i], arr[i-1]]; next[active] = { ...next[active], items: arr } as Day; return next;
-                    });
-                  }}>▲</button>
-                  <button className="chip" onClick={() => {
-                    setHistory(h => [...h, localDays.map(d => ({...d, items: [...d.items]}))]);
-                    setFuture([]);
-                    setLocalDays(prev => {
-                      const next = [...prev]; const arr = [...(next[active]?.items ?? [])];
-                      if (i >= arr.length-1) return prev; [arr[i+1], arr[i]] = [arr[i], arr[i+1]]; next[active] = { ...next[active], items: arr } as Day; return next;
-                    });
-                  }}>▼</button>
-                  <span style={{marginLeft:8}}>체류</span>
-                  <input type="number" defaultValue={it.stayMin ?? 60} min={0} id={`stay-${it.id}`} style={{width:70}} />
-                  <span>분</span>
-                  <button className="chip" onClick={async () => {
-                    const id = new URLSearchParams(location.search).get('id');
-                    if (!id) return;
-                    const v = Number((document.getElementById(`stay-${it.id}`) as HTMLInputElement).value || 0);
-                    await axios.put(`/trips/items/${it.id}/stay`, null, { params: { min: v } });
-                    const { data } = await axios.get<TripEditView>(`/trips/${id}/edit-view`);
-                    setTrip(data); setLocalDays(data.days);
-                  }}>저장</button>
-                  </div>
                   <div className="timebar">도착 {timetable[i]?.arrive ?? '--:--'} • 출발 {timetable[i]?.depart ?? '--:--'}</div>
                 </div>
               </div>
             ))}
             </div>
-            <div className="place-actions" style={{marginTop:12, gap:8}}>
-              <button className="btn primary" onClick={async () => {
-                const id = new URLSearchParams(location.search).get('id');
-                if (!id) return;
-                const ids = (localDays[active]?.items ?? []).map(s => s.id);
-                await axios.post(`/optimize/day/apply`, ids, { params: { tripId: id, dayIndex: localDays[active].dayIndex } });
-                await axios.post(`/trips/${id}/days/${localDays[active].dayIndex}/recalc`);
-                const { data } = await axios.get<TripEditView>(`/trips/${id}/edit-view`);
-                setTrip(data); setLocalDays(data.days);
-                alert('순서 저장 및 경로 재계산 완료');
-              }}>변경사항 저장</button>
-
-              <button className="btn" onClick={async () => {
-                const id = new URLSearchParams(location.search).get('id');
-                if (!id) return;
-                // 모든 일차에 대해 순서 유지 적용 + 재계산 호출
-                for (const d of localDays) {
-                  const ids = (d.items ?? []).map(s => s.id);
-                  await axios.post(`/optimize/day/apply`, ids, { params: { tripId: id, dayIndex: d.dayIndex } });
-                  await axios.post(`/trips/${id}/days/${d.dayIndex}/recalc`);
-                }
-                const { data } = await axios.get<TripEditView>(`/trips/${id}/edit-view`);
-                setTrip(data); setLocalDays(data.days);
-                alert('모든 일차에 일괄 적용 및 재계산 완료');
-              }}>모든 일차 일괄적용</button>
-            </div>
           </div>
         </div>
 
-        {/* 우측: 지도 (헤더 없이 전체 채움) */}
+        {/* 우측: 지도 */}
         <div className="results-wrap">
           <div style={{width:'100%', height:'100%'}}>
             <MapContainer center={center} zoom={11} style={{ width: '100%', height: '100%' }} scrollWheelZoom>
@@ -337,5 +236,3 @@ export default function TripEditPage() {
     </div>
   );
 }
-
-
