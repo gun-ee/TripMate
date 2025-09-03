@@ -525,18 +525,7 @@ const TripTalk: React.FC = () => {
             </div>
           </div>
 
-          {/* 필터 */}
-          <div className="triptalk-filters">
-            <select className="filter-select">
-              <option>여행시기</option>
-            </select>
 
-            <select className="filter-select">
-              <option>주제</option>
-            </select>
-
-
-          </div>
 
           {/* 새 게시글 작성 */}
           {isLoggedIn && (
