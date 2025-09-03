@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 // @ts-expect-error - html2pdf.js has no type definitions
 import html2pdf from 'html2pdf.js';
 import QRCode from 'react-qr-code';
+import { showToast } from '../utils/sweetAlert';
 
 interface ItinStop {
   id: string;
@@ -251,7 +252,7 @@ const PDFExport: React.FC<PDFExportProps> = ({
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(pdfUrl);
-                  alert('링크가 클립보드에 복사되었습니다!');
+                  showToast('링크가 클립보드에 복사되었습니다!');
                 }}
                 style={{
                   backgroundColor: '#27ae60',

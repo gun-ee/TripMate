@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axiosInstance from '../api/axios';
+import { showAlert } from '../utils/sweetAlert';
 import './MemberLogin.css';
 
 function LoginForm() {
@@ -20,7 +21,7 @@ function LoginForm() {
   useEffect(() => {
     if (toast) {
       // 예: 토스트 메시지 띄우기
-      alert(toast); // 또는 setToastMessage(toast) 등
+      showAlert('알림', toast);
     }
   }, [toast]);
 

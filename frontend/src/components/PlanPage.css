@@ -153,6 +153,53 @@
   }
 }
 
+/* 컴팩트 날짜/시간 선택기 스타일 */
+.compact-date-picker .date-picker-input {
+  height: 32px;
+  padding: 6px 10px;
+  font-size: 12px;
+  min-height: 32px;
+}
+
+.compact-date-picker .selected-date,
+.compact-date-picker .placeholder {
+  font-size: 12px;
+}
+
+.compact-date-picker .calendar-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.compact-time-picker .time-picker-input {
+  height: 32px;
+  padding: 6px 10px;
+  font-size: 12px;
+  min-height: 32px;
+}
+
+.compact-time-picker .selected-time,
+.compact-time-picker .placeholder {
+  font-size: 12px;
+}
+
+.compact-time-picker .clock-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* 날짜/시간 선택기 z-index 보장 */
+.custom-date-picker,
+.custom-time-picker {
+  position: relative;
+  z-index: 10;
+}
+
+.date-picker-popup,
+.time-picker-popup {
+  z-index: 9999 !important;
+}
+
 /* 기존 여행계획짜기 화면 스타일 개선 */
 .topbar {
   display: flex; 
@@ -353,6 +400,8 @@ label {
   box-shadow: 0 8px 32px rgba(38, 166, 154, 0.12);
   border: 1px solid rgba(38, 166, 154, 0.08);
   backdrop-filter: blur(10px);
+  position: relative;
+  z-index: 1000;
 }
 
 .plan-controls-left {

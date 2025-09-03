@@ -1,6 +1,7 @@
 // frontend/src/components/OAuthRedirect.tsx
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { showError } from '../utils/sweetAlert';
 import { useAuth } from '../contexts/AuthContext';
 
 const OAuthRedirect: React.FC = () => {
@@ -28,7 +29,7 @@ const OAuthRedirect: React.FC = () => {
 
       navigate('/');
     } else {
-      alert('토큰이 전달되지 않았습니다.');
+      showError('인증 오류', '토큰이 전달되지 않았습니다.');
       navigate('/login');
     }
   }, [navigate, socialLogin]);

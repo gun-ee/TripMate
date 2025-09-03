@@ -7,6 +7,7 @@ import { followApi } from '../api/follow';
 import Header from './Header';
 import PostDetailModal from './PostDetailModal';
 import RegionChatModal from './RegionChatModal';
+import { showError } from '../utils/sweetAlert';
 import './TripTalk.css';
 
 const TripTalk: React.FC = () => {
@@ -361,7 +362,7 @@ const TripTalk: React.FC = () => {
       }
     } catch (error) {
       console.error('팔로우/언팔로우 실패:', error);
-      alert('팔로우/언팔로우에 실패했습니다.');
+      showError('팔로우 실패', '팔로우/언팔로우에 실패했습니다.');
     }
   };
 

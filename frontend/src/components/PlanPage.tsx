@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GeoJsonObject } from 'geojson';
 import Header from './Header';
+import { showError, showSuccess, showWarning } from '../utils/sweetAlert';
+import CustomDatePicker from './CustomDatePicker';
+import CustomTimePicker from './CustomTimePicker';
 import {
   MapContainer,
   TileLayer,
@@ -249,16 +252,16 @@ export default function PlanPage() {
   /** 계획 시작: 도시로 이동 + 일수 계산 + (자동검색은 moveend로 처리) */
   const onStartPlan = async () => {
     if (!cityQuery.trim()) {
-      alert('여행지를 입력해주세요.');
+      showWarning('입력 오류', '여행지를 입력해주세요.');
       return;
     }
     if (!startDate || !endDate) {
-      alert('여행 시작일과 종료일을 모두 입력해주세요.');
+      showWarning('입력 오류', '여행 시작일과 종료일을 모두 입력해주세요.');
       return;
     }
 
     const coord = await geocodeCity(cityQuery);
-    if (!coord) return alert('도시를 찾지 못했습니다.');
+    if (!coord) return showError('검색 실패', '도시를 찾지 못했습니다.');
     setCityCoord(coord);
     setCenter(coord); // SetViewOnChange가 지도 이동 → moveend 발생 → 자동검색 실행
     // 지도 이동 이벤트를 기다리지 않고, 도시 좌표 기준으로 즉시 주변검색/검색 실행
@@ -476,7 +479,7 @@ export default function PlanPage() {
       });
     } catch (e) {
       console.error(e);
-      alert('최적화 중 오류가 발생했습니다.');
+      showError('최적화 오류', '최적화 중 오류가 발생했습니다.');
     }
   };
 
@@ -486,13 +489,13 @@ export default function PlanPage() {
       const token = localStorage.getItem('accessToken');
       
       if (!token) {
-        alert('로그인이 필요합니다.');
+        showWarning('로그인 필요', '로그인이 필요합니다.');
         return;
       }
 
       // 편집 모드에서 작성자 권한 확인
       if (editTripId && currentUserId !== tripAuthorId) {
-        alert('이 여행계획을 편집할 권한이 없습니다.');
+        showError('권한 없음', '이 여행계획을 편집할 권한이 없습니다.');
         return;
       }
       
@@ -539,8 +542,9 @@ export default function PlanPage() {
       
       // API 응답에서 ID 추출
       let id = editTripId;
-      if (!id && data && (data as any).data) {
-        id = (data as any).data.id;
+      if (!id && data && typeof data === 'object' && 'data' in data) {
+        const responseData = data as { data: { id: number } };
+        id = responseData.data.id;
       }
       
       console.log('최종 ID:', id);
@@ -551,7 +555,7 @@ export default function PlanPage() {
       }
       
       // ID가 없는 경우 임시 해결책: 저장 성공 메시지와 함께 새로고침
-      alert('저장 완료! 잠시 후 결과 페이지로 이동합니다.');
+      showSuccess('저장 완료', '잠시 후 결과 페이지로 이동합니다.');
       
       // 2초 후 메인 페이지로 이동 (또는 사용자가 직접 결과 페이지로 이동)
       setTimeout(() => {
@@ -562,9 +566,9 @@ export default function PlanPage() {
       // 타입 단언 최소화
       const resp = (e as { response?: { status?: number } } | undefined)?.response;
       if (resp?.status === 401) {
-        alert('인증이 필요합니다. 다시 로그인해주세요.');
+        showError('인증 오류', '인증이 필요합니다. 다시 로그인해주세요.');
       } else {
-        alert('저장 실패');
+        showError('저장 실패', '여행 계획 저장에 실패했습니다.');
       }
     }
   };
@@ -598,18 +602,18 @@ export default function PlanPage() {
             <div className="date-inputs">
               <div className="input-group">
                 <label>시작일</label>
-                <input 
-                  type="date" 
+                <CustomDatePicker 
                   value={startDate} 
-                  onChange={(e) => setStartDate(e.target.value)} 
+                  onChange={setStartDate}
+                  placeholder="시작일을 선택하세요"
                 />
               </div>
               <div className="input-group">
                 <label>종료일</label>
-                <input 
-                  type="date" 
+                <CustomDatePicker 
                   value={endDate} 
-                  onChange={(e) => setEndDate(e.target.value)} 
+                  onChange={setEndDate}
+                  placeholder="종료일을 선택하세요"
                 />
               </div>
             </div>
@@ -639,8 +643,20 @@ export default function PlanPage() {
               <input className="city-input" placeholder="도시(제주, 파리, 독일…)"
                      value={cityQuery} onChange={(e) => setCityQuery(e.target.value)} />
               <div className="date-range">
-                <label>시작</label><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-                <label>종료</label><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                <label>시작</label>
+                <CustomDatePicker 
+                  value={startDate} 
+                  onChange={setStartDate}
+                  placeholder="시작일"
+                  className="compact-date-picker"
+                />
+                <label>종료</label>
+                <CustomDatePicker 
+                  value={endDate} 
+                  onChange={setEndDate}
+                  placeholder="종료일"
+                  className="compact-date-picker"
+                />
               </div>
               <button className="btn" onClick={onStartPlan}>계획 시작</button>
               <input className="keyword-input" placeholder="키워드(없으면 주변)"
@@ -663,9 +679,19 @@ export default function PlanPage() {
             <div className="plan-controls-right">
               <div className="time-controls">
                 <label>일과 시작</label>
-                <input type="time" value={dayStart} onChange={(e) => setDayStart(e.target.value)} />
+                <CustomTimePicker 
+                  value={dayStart} 
+                  onChange={setDayStart}
+                  placeholder="시작시간"
+                  className="compact-time-picker"
+                />
                 <label>종료</label>
-                <input type="time" value={dayEnd} onChange={(e) => setDayEnd(e.target.value)} />
+                <CustomTimePicker 
+                  value={dayEnd} 
+                  onChange={setDayEnd}
+                  placeholder="종료시간"
+                  className="compact-time-picker"
+                />
               </div>
             </div>
           </div>

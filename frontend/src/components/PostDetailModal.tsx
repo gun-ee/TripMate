@@ -3,6 +3,7 @@ import { FaHeart, FaComment, FaTimes, FaEdit, FaTrash } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { usePostContext, type Post } from '../contexts/PostContext';
 import axiosInstance from '../api/axios';
+import { showDeleteConfirm } from '../utils/sweetAlert';
 import './PostDetailModal.css';
 
 interface PostDetailModalProps {
@@ -138,7 +139,9 @@ const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, isOpen, onClose
   };
 
   const handleDelete = async () => {
-    if (!currentPost || !confirm('정말로 이 게시글을 삭제하시겠습니까?')) return;
+    if (!currentPost) return;
+    const result = await showDeleteConfirm('게시글 삭제', '정말로 이 게시글을 삭제하시겠습니까?');
+    if (!result.isConfirmed) return;
     
     try {
               await axiosInstance.delete(`/posts/${currentPost.id}`);
@@ -311,7 +314,8 @@ const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, isOpen, onClose
                        <button 
                          className="comment-delete-btn"
                          onClick={async () => {
-                           if (confirm('댓글을 삭제하시겠습니까?')) {
+                           const result = await showDeleteConfirm('댓글 삭제', '댓글을 삭제하시겠습니까?');
+                           if (result.isConfirmed) {
                              try {
                                await axiosInstance.delete(`/posts/${currentPost.id}/comments/${comment.id}`);
                                await fetchComments();

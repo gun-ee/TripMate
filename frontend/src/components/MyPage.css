@@ -37,7 +37,7 @@
 .tab { padding:8px 12px; border-radius:999px; background:#f3f4f6; border:none; }
 .tab.active { background:#111827; color:#fff; }
 
-.trip-grid { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:16px; }
+.trip-grid { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:16px; padding-right: 20px; }
 @media (max-width:1200px){ .trip-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); } }
 @media (max-width:700px){ .trip-grid{ grid-template-columns:1fr; } }
 

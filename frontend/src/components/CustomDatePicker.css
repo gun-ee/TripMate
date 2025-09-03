@@ -1,0 +1,252 @@
+.custom-date-picker {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.date-picker-input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 1px solid rgba(38, 166, 154, 0.15);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.date-picker-input:hover {
+  border-color: rgba(38, 166, 154, 0.3);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.date-picker-input:focus-within {
+  outline: none;
+  border-color: #26a69a;
+  box-shadow: 0 0 0 3px rgba(38, 166, 154, 0.15);
+  background: white;
+  transform: translateY(-1px);
+}
+
+.selected-date {
+  color: #26a69a;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.placeholder {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.calendar-icon {
+  width: 20px;
+  height: 20px;
+  color: #26a69a;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
+.date-picker-input:hover .calendar-icon {
+  opacity: 1;
+}
+
+.date-picker-popup {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+  background: white;
+  border: 1px solid rgba(38, 166, 154, 0.15);
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  padding: 24px;
+  margin-top: 8px;
+  backdrop-filter: blur(10px);
+  animation: slideDown 0.2s ease-out;
+  min-width: 320px;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.date-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.nav-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(38, 166, 154, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #26a69a;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.nav-button:hover {
+  background: rgba(38, 166, 154, 0.2);
+  transform: scale(1.05);
+}
+
+.nav-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.month-year {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.date-picker-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 36px);
+  gap: 2px;
+  margin-bottom: 16px;
+  justify-content: center;
+}
+
+.weekday {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.date-picker-days {
+  display: grid;
+  grid-template-columns: repeat(7, 36px);
+  gap: 2px;
+  margin-bottom: 16px;
+  padding: 0 2px;
+  justify-content: center;
+  justify-items: center;
+  align-items: center;
+}
+
+.day-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  width: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  transition: all 0.2s ease;
+  position: relative;
+  min-width: 32px;
+  max-width: 32px;
+  text-align: center;
+  line-height: 1;
+}
+
+.day-button:hover {
+  background: rgba(38, 166, 154, 0.1);
+  color: #26a69a;
+}
+
+.day-button.other-month {
+  color: #d1d5db;
+  cursor: not-allowed;
+}
+
+.day-button.other-month:hover {
+  background: transparent;
+  color: #d1d5db;
+}
+
+.day-button.today {
+  background: rgba(38, 166, 154, 0.1);
+  color: #26a69a;
+  font-weight: 600;
+}
+
+.day-button.today:hover {
+  background: rgba(38, 166, 154, 0.2);
+}
+
+.day-button.selected {
+  background: #26a69a;
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 4px 6px -1px rgba(38, 166, 154, 0.3);
+}
+
+.day-button.selected:hover {
+  background: #00897b;
+}
+
+.date-picker-footer {
+  display: flex;
+  justify-content: center;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.today-button {
+  padding: 8px 16px;
+  border: 1px solid rgba(38, 166, 154, 0.3);
+  background: transparent;
+  border-radius: 8px;
+  color: #26a69a;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.today-button:hover {
+  background: rgba(38, 166, 154, 0.1);
+  border-color: #26a69a;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 480px) {
+  .date-picker-popup {
+    padding: 16px;
+    margin-top: 4px;
+  }
+  
+  .day-button {
+    height: 32px;
+    font-size: 13px;
+  }
+  
+  .month-year {
+    font-size: 14px;
+  }
+}

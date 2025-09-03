@@ -3,6 +3,7 @@ import Header from './Header';
 import { tripPlanApi } from '../api/tripPlan';
 import type { TripPlan, TripPlanResponse } from '../types/tripPlan';
 import { useAuth } from '../contexts/AuthContext';
+import { showDeleteConfirm } from '../utils/sweetAlert';
 import './TripPlan.css';
 import { FiMapPin, FiCalendar } from 'react-icons/fi';
 
@@ -163,7 +164,8 @@ const TripPlanPage: React.FC = () => {
   };
 
   const handleDeletePlan = async (id: number) => {
-    if (window.confirm('정말로 이 여행 계획을 삭제하시겠습니까?')) {
+    const result = await showDeleteConfirm('여행 계획 삭제', '정말로 이 여행 계획을 삭제하시겠습니까?');
+    if (result.isConfirmed) {
       try {
         await tripPlanApi.deleteTripPlan(id);
         setMessage('여행 계획이 삭제되었습니다.');
