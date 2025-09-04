@@ -30,7 +30,7 @@ const baseMenu: MenuItem[] = [
   },
   {
     name: '동행구하기',
-    link: '/shop',
+    link: '/accompany',
     submenu: [
       //{ name: '쇼핑', link: '/shop/shopping' },
       //{ name: 'Auction', link: '/shop/auction' },
