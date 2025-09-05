@@ -14,6 +14,10 @@ import RegionChatExample from './components/RegionChatExample';
 import PlanPage from './components/PlanPage';
 import TripResultPage from './components/TripResultPage';
 import MyPage from './components/MyPage';
+import AccompanyManage from './components/AccompanyManage';
+import AccompanyList from './components/accompany/AccompanyList';
+import AccompanyDetail from './components/accompany/AccompanyDetail';
+import AccompanyEdit from './components/accompany/AccompanyEdit';
 import './App.css';
 
 function App() {
@@ -34,6 +38,10 @@ function App() {
               <Route path="/plan" element={<PlanPage />} />
               <Route path="/trip/result" element={<TripResultPage />} />
               <Route path="/members/mypage" element={<MyPage />} />
+              <Route path="/members/mypage/accompany" element={<AccompanyManage />} />
+              <Route path="/accompany" element={<AccompanyList />} />
+              <Route path="/accompany/:id" element={<AccompanyDetail />} />
+              <Route path="/accompany/:id/edit" element={<AccompanyEdit />} />
             </Routes>
           </div>
         </Router>

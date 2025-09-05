@@ -6,19 +6,8 @@ import Header from './Header';
 import { showError, showSuccess, showWarning } from '../utils/sweetAlert';
 import CustomDatePicker from './CustomDatePicker';
 import CustomTimePicker from './CustomTimePicker';
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Popup,
-  Polyline,
-  GeoJSON,
-  useMap,
-} from 'react-leaflet';
-import type { LatLngExpression } from 'leaflet';
 import axios from '../api/axios';
-import MapAutoResize from '../components/MapAutoResize';   // 교체본 사용(미세리사이즈 무시)
-import MapMoveWatcher from '../components/MapMoveWatcher'; // 교체본 사용(쿨다운/미세이동 가드)
+import GoogleMapComponent from './GoogleMapComponent';
 
 import './PlanPage.css';
 
@@ -32,6 +21,8 @@ type Place = {
   x?: number | string; y?: number | string;
   tags?: string;
   otm?: boolean;
+  photoReference?: string;
+  imageUrl?: string;
 };
 
 type ItinStop = {
@@ -47,7 +38,7 @@ type ItinStop = {
 type TransportMode = 'driving' | 'foot' | 'bicycle';
 type RouteMode = 'lines' | 'osrm';
 
-const DEFAULT_CENTER: LatLngExpression = [37.5665, 126.9780]; // 서울
+const DEFAULT_CENTER = { lat: 37.5665, lng: 126.9780 }; // 서울
 
 const toNum = (v: unknown) => {
   if (typeof v === 'number' && Number.isFinite(v)) return v;
@@ -77,14 +68,6 @@ const HHMM = (mins: number) => {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
 
-/** center 상태가 바뀔 때 실제 지도를 이동시킴(Plan 시작 시 포함) */
-function SetViewOnChange({ center, zoom }: { center: LatLngExpression; zoom: number }) {
-  const map = useMap();
-  useEffect(() => {
-    map.setView(center as LatLngExpression, zoom, { animate: true });
-  }, [map, center, zoom]);
-  return null;
-}
 
 /* =========================
  * 페이지 컴포넌트
@@ -103,7 +86,7 @@ export default function PlanPage() {
   const [endDate, setEndDate] = useState<string>('');
 
   /** 2) 지도/검색 */
-  const [center, setCenter] = useState<LatLngExpression>(DEFAULT_CENTER);
+  const [center, setCenter] = useState<{ lat: number; lng: number }>({ lat: 37.5665, lng: 126.9780 });
   const [keyword, setKeyword] = useState<string>('');
   const [places, setPlaces] = useState<Place[]>([]);
   const [limit] = useState<number>(60);
@@ -187,7 +170,7 @@ export default function PlanPage() {
       if (coords) {
         console.log('지오코딩 성공:', coords);
         setCityCoord(coords);
-        setCenter(coords); // 지도 중심도 함께 설정
+        setCenter({ lat: coords[0], lng: coords[1] }); // 지도 중심도 함께 설정
         // 지도 중심 변경 후 주변 장소 검색
         setTimeout(() => {
           fetchNearby(coords[0], coords[1]);
@@ -198,7 +181,7 @@ export default function PlanPage() {
         const firstPlace = convertedDays[0][0];
         const fallbackCoords = [firstPlace.lat, firstPlace.lon] as [number, number];
         setCityCoord(fallbackCoords);
-        setCenter(fallbackCoords); // 지도 중심도 함께 설정
+        setCenter({ lat: fallbackCoords[0], lng: fallbackCoords[1] }); // 지도 중심도 함께 설정
         setTimeout(() => {
           fetchNearby(firstPlace.lat, firstPlace.lon);
         }, 100);
@@ -263,7 +246,7 @@ export default function PlanPage() {
     const coord = await geocodeCity(cityQuery);
     if (!coord) return showError('검색 실패', '도시를 찾지 못했습니다.');
     setCityCoord(coord);
-    setCenter(coord); // SetViewOnChange가 지도 이동 → moveend 발생 → 자동검색 실행
+    setCenter({ lat: coord[0], lng: coord[1] }); // SetViewOnChange가 지도 이동 → moveend 발생 → 자동검색 실행
     // 지도 이동 이벤트를 기다리지 않고, 도시 좌표 기준으로 즉시 주변검색/검색 실행
     if (keyword.trim()) await fetchSearch(coord[0], coord[1], keyword.trim());
     else await fetchNearby(coord[0], coord[1]);
@@ -700,39 +683,34 @@ export default function PlanPage() {
           <div className="plan-row" style={{ gridTemplateColumns: '1.2fr 1fr 1fr' }}>
             {/* 지도 */}
             <div className="map-wrap">
-              <MapContainer center={center} zoom={12} style={{ width: '100%', height: '100%' }} scrollWheelZoom>
-                <MapAutoResize />
-                <SetViewOnChange center={center} zoom={12} />
-                <MapMoveWatcher onMoveEnd={onMapMoveEnd} /> {/* 지도 이동 시 자동검색 */}
-
-                <TileLayer
-                  attribution="&copy; OpenStreetMap contributors"
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-
-                {/* 검색 마커 */}
-                {places.map((p, idx) => {
-                  const k = keyOf(p, idx);
+              <GoogleMapComponent
+                center={center}
+                zoom={12}
+                places={places.map((p, idx) => {
                   const c = getCoords(p);
-                  if (!c) return null;
-                  return (
-                    <Marker key={k} position={c as LatLngExpression}>
-                      <Popup>
-                        <b>{p.name ?? 'Unknown'}</b>
-                        {p.tags && <div style={{ marginTop: 4, fontSize: 12 }}>{p.tags}</div>}
-                        <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          <button className="chip" onClick={() => addToDay(activeDay, p, idx)}>추가</button>
-                          <button className="chip" onClick={() => addToDay(activeDay, p, idx, true)}>숙소</button>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  );
-                })}
-
-                {/* 경로 */}
-                {routeLine.length >= 2 && <Polyline positions={routeLine as LatLngExpression[]} />}
-                {routeGeo && <GeoJSON data={routeGeo} />}
-              </MapContainer>
+                  return {
+                    id: keyOf(p, idx),
+                    name: p.name ?? 'Unknown',
+                    lat: c ? c[0] : 37.5665, // 기본값: 서울
+                    lng: c ? c[1] : 126.9780, // 기본값: 서울
+                    imageUrl: p.imageUrl
+                  };
+                }).filter(place => 
+                  typeof place.lat === 'number' && typeof place.lng === 'number' && 
+                  !isNaN(place.lat) && !isNaN(place.lng)
+                )}
+                onPlaceClick={(place) => {
+                  const originalPlace = places.find(p => keyOf(p, 0) === place.id);
+                  if (originalPlace) {
+                    const idx = places.findIndex(p => keyOf(p, 0) === place.id);
+                    addToDay(activeDay, originalPlace, idx);
+                  }
+                }}
+                onMapClick={(lat, lng) => {
+                  onMapMoveEnd(lat, lng);
+                }}
+                className="google-map-container"
+              />
             </div>
 
             {/* 검색 결과 */}
@@ -747,6 +725,11 @@ export default function PlanPage() {
                     const k = keyOf(p, idx);
                     return (
                       <div key={k} className="place-item">
+                        {p.imageUrl && (
+                          <div className="place-image">
+                            <img src={p.imageUrl} alt={p.name} style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '8px' }} />
+                          </div>
+                        )}
                         <div className="place-title">{p.name ?? 'Unknown'}</div>
                         {p.tags && <div className="place-tags">{p.tags}</div>}
                         <div className="place-actions" style={{justifyContent:'flex-end'}}>

@@ -6,7 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tripmate.dto.PlaceDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -27,10 +29,17 @@ public class PlaceSearchService {
   @Value("${app.kakao.rest-key}") String kakaoKey;
   @Value("${app.otm.api-key}") String otmKey;
   @Value("${app.otm-default-rate:1}") int otmDefaultRate;
+  @Value("${google.api-key:YOUR_GOOGLE_API_KEY_HERE}") 
+  private String googleApiKey;
+  
+  private String getGoogleApiKey() {
+    log.info("Google API Key 읽기: {}", googleApiKey);
+    return googleApiKey;
+  }
 
   // ---- Caching config ----
   private static final String V = "v1";
-  private static final double GRID_DEG = 0.02; // ~= 2.2km 타일
+  private static final double GRID_DEG = 0.02; // ~= 2.2km 타일 (OTM과 동일한 크기)
   private static final long L1_TTL_MS = 45_000; // 45s
   private static final Duration TTL_KAKAO = Duration.ofMinutes(15);
   private static final Duration TTL_OTM   = Duration.ofMinutes(60);
@@ -82,6 +91,9 @@ public class PlaceSearchService {
   }
   private String keyMerged(String q,double lat,double lon){
     return String.format("places:%s:region:%s:merged:q=%s", V, regionKey(lat,lon), normQuery(q));
+  }
+  private String keyGoogle(String q,double lat,double lon){
+    return String.format("places:%s:region:%s:google:q=%s", V, regionKey(lat,lon), normQuery(q));
   }
   private String keyGeocode(String city){
     String t = normQuery(city);
@@ -184,43 +196,11 @@ public class PlaceSearchService {
   }
 
   public List<PlaceDto> search(String q, double lat, double lon, int limit, Integer rateOpt) {
-    int rate = (rateOpt != null ? rateOpt : otmDefaultRate);
-
-    // 키워드가 있는 경우: 카카오 우선, 카카오가 없으면 OTM을 간단 필터링
+    // Google API 사용으로 변경
     if (q != null && !q.isBlank()) {
-      List<PlaceDto> kakao = kakaoKeyword(q, lat, lon, limit);
-      if (!kakao.isEmpty()) {
-        return kakao;
-      }
-      // Kakao 결과 없으면 OTM 결과를 간단 키워드 필터(대/소문자 무시)
-      String qLower = q.toLowerCase(Locale.ROOT);
-      List<PlaceDto> otm = otmNearby(lat, lon, limit, rate);
-      List<PlaceDto> filtered = new ArrayList<>();
-      for (PlaceDto p : otm) {
-        String name = p.getName();
-        if (name != null && name.toLowerCase(Locale.ROOT).contains(qLower)) {
-          filtered.add(p);
-        }
-      }
-      return filtered;
+      return googleKeyword(q, lat, lon, limit);
     }
-
-    // 키워드가 없는 경우(주변): 병합 + 정렬 (캐시 사용)
-    String mk = keyMerged(q, lat, lon);
-    List<PlaceDto> merged = Optional.ofNullable(getL1(mk)).orElseGet(() -> getL2(mk));
-    if (merged != null) return merged;
-
-    String lk = lockKey(mk);
-    if (!acquireLock(lk, Duration.ofSeconds(15))) {
-      List<PlaceDto> waited = spinWaitCache(() -> getL2(mk), 60, 50);
-      if (waited != null) return waited;
-    }
-
-    List<PlaceDto> otm   = otmNearby(lat, lon, limit, rate);
-    List<PlaceDto> out = mergeRank(List.of(), otm, lat, lon);
-    putL1(mk, out); putL2(mk, out, TTL_MERGED);
-    releaseLock(lk);
-    return out;
+    return googleNearby(lat, lon, limit);
   }
 
   public List<PlaceDto> nearby(double lat, double lon, int limit, Integer rateOpt) { return search("", lat, lon, limit, rateOpt); }
@@ -322,4 +302,180 @@ public class PlaceSearchService {
   }
   private double dist(Double a, Double b, Double c, Double d) { if (a==null||b==null||c==null||d==null) return 1e9; double dx=a-c, dy=b-d; return Math.sqrt(dx*dx+dy*dy); }
   private Double parseD(String s){ try{ return s==null?null:Double.parseDouble(s);}catch(Exception e){return null;}}
+
+  // ---- Google Places API Methods ----
+  private List<PlaceDto> googleFetchKeyword(String q, double lat, double lon, int size) {
+    try {
+      String url = "https://maps.googleapis.com/maps/api/place/textsearch/json?query=" + q + "&location=" + lat + "," + lon + "&radius=20000&key=" + getGoogleApiKey();
+      log.info("Google API 호출: {}", url);
+      Map response = rest.getForObject(url, Map.class);
+      log.info("Google API 응답: {}", response);
+      
+      if (response == null) {
+        log.warn("Google API 응답이 null입니다");
+        return new ArrayList<>();
+      }
+      
+      String status = (String) response.get("status");
+      if (!"OK".equals(status)) {
+        log.error("Google API 에러 상태: {}", status);
+        return new ArrayList<>();
+      }
+      
+      List<Map<String,Object>> results = (List<Map<String,Object>>) response.getOrDefault("results", List.of());
+      log.info("Google API 결과 개수: {}", results.size());
+      List<PlaceDto> out = new ArrayList<>();
+    
+    for (var result : results) {
+      Map<String,Object> geometry = (Map<String,Object>) result.get("geometry");
+      Map<String,Object> location = (Map<String,Object>) geometry.get("location");
+      
+      // 이미지 정보 추출
+      String photoReference = null;
+      String imageUrl = null;
+      List<Map<String,Object>> photos = (List<Map<String,Object>>) result.getOrDefault("photos", List.of());
+      if (!photos.isEmpty()) {
+        photoReference = (String) photos.get(0).get("photo_reference");
+        imageUrl = "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=" + photoReference + "&key=" + getGoogleApiKey();
+      }
+      
+      out.add(PlaceDto.builder()
+        .source("google")
+        .ref((String) result.get("place_id"))
+        .name((String) result.get("name"))
+        .lat((Double) location.get("lat"))
+        .lng((Double) location.get("lng"))
+        .address((String) result.get("formatted_address"))
+        .category(String.join(", ", (List<String>) result.get("types")))
+        .photoReference(photoReference)
+        .imageUrl(imageUrl)
+        .raw(result)
+        .build());
+    }
+    return out;
+    } catch (Exception e) {
+      log.error("Google API 호출 실패: {}", e.getMessage(), e);
+      return new ArrayList<>();
+    }
+  }
+
+  private List<PlaceDto> googleFetchNearby(double lat, double lon, int limit, int rate) {
+    try {
+      // 여러 타입을 조합하여 더 많은 관광지 가져오기
+      String types = "tourist_attraction|museum|park|zoo|aquarium|art_gallery|amusement_park|shopping_mall|restaurant|cafe|hotel|resort|spa|beach|mountain|lake|point_of_interest";
+      String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + lat + "," + lon + "&radius=20000&type=" + types + "&key=" + getGoogleApiKey();
+      log.info("Google Nearby API 호출: {}", url);
+      Map response = rest.getForObject(url, Map.class);
+      log.info("Google Nearby API 응답: {}", response);
+      
+      if (response == null) {
+        log.warn("Google Nearby API 응답이 null입니다");
+        return new ArrayList<>();
+      }
+      
+      String status = (String) response.get("status");
+      if (!"OK".equals(status)) {
+        log.error("Google Nearby API 에러 상태: {}", status);
+        return new ArrayList<>();
+      }
+      
+      List<Map<String,Object>> results = (List<Map<String,Object>>) response.getOrDefault("results", List.of());
+      log.info("Google Nearby API 결과 개수: {}", results.size());
+      
+      // next_page_token이 있으면 추가 결과 가져오기 (최대 3페이지까지)
+      String nextPageToken = (String) response.get("next_page_token");
+      int pageCount = 1;
+      while (nextPageToken != null && !nextPageToken.isEmpty() && pageCount < 3) {
+        log.info("Google Nearby API next_page_token 발견, 페이지 {} 추가 결과 가져오기...", pageCount + 1);
+        try {
+          Thread.sleep(2000); // Google API 요구사항: 2초 대기
+          String nextUrl = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?pagetoken=" + nextPageToken + "&key=" + getGoogleApiKey();
+          Map nextResponse = rest.getForObject(nextUrl, Map.class);
+          if (nextResponse != null && "OK".equals(nextResponse.get("status"))) {
+            List<Map<String,Object>> nextResults = (List<Map<String,Object>>) nextResponse.getOrDefault("results", List.of());
+            log.info("Google Nearby API 페이지 {} 결과 개수: {}", pageCount + 1, nextResults.size());
+            results.addAll(nextResults);
+            nextPageToken = (String) nextResponse.get("next_page_token");
+            pageCount++;
+          } else {
+            break;
+          }
+        } catch (Exception e) {
+          log.warn("Google Nearby API 추가 결과 가져오기 실패: {}", e.getMessage());
+          break;
+        }
+      }
+      
+      List<PlaceDto> out = new ArrayList<>();
+    
+    for (var result : results) {
+      Map<String,Object> geometry = (Map<String,Object>) result.get("geometry");
+      Map<String,Object> location = (Map<String,Object>) geometry.get("location");
+      
+      // 이미지 정보 추출
+      String photoReference = null;
+      String imageUrl = null;
+      List<Map<String,Object>> photos = (List<Map<String,Object>>) result.getOrDefault("photos", List.of());
+      if (!photos.isEmpty()) {
+        photoReference = (String) photos.get(0).get("photo_reference");
+        imageUrl = "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=" + photoReference + "&key=" + getGoogleApiKey();
+      }
+      
+      out.add(PlaceDto.builder()
+        .source("google")
+        .ref((String) result.get("place_id"))
+        .name((String) result.get("name"))
+        .lat((Double) location.get("lat"))
+        .lng((Double) location.get("lng"))
+        .address((String) result.get("vicinity"))
+        .category(String.join(", ", (List<String>) result.get("types")))
+        .photoReference(photoReference)
+        .imageUrl(imageUrl)
+        .raw(result)
+        .build());
+    }
+    return out;
+    } catch (Exception e) {
+      log.error("Google Nearby API 호출 실패: {}", e.getMessage(), e);
+      return new ArrayList<>();
+    }
+  }
+
+  // ---- Google API with Caching ----
+  private List<PlaceDto> googleKeyword(String q, double lat, double lon, int size) {
+    String gk = keyGoogle(q, lat, lon);
+    List<PlaceDto> cached = Optional.ofNullable(getL1(gk)).orElseGet(() -> getL2(gk));
+    if (cached != null) return cached;
+    
+    String lk = lockKey(gk);
+    if (!acquireLock(lk, Duration.ofSeconds(15))) {
+      List<PlaceDto> waited = spinWaitCache(() -> getL2(gk), 60, 50);
+      if (waited != null) return waited;
+    }
+    
+    log.info("REMOTE FETCH google q={} lat={} lon={}", q, lat, lon);
+    List<PlaceDto> out = googleFetchKeyword(q, lat, lon, size);
+    putL1(gk, out); putL2(gk, out, TTL_OTM); // OTM과 동일한 TTL 사용
+    releaseLock(lk);
+    return out;
+  }
+
+  private List<PlaceDto> googleNearby(double lat, double lon, int limit) {
+    String gk = keyGoogle("", lat, lon);
+    List<PlaceDto> cached = Optional.ofNullable(getL1(gk)).orElseGet(() -> getL2(gk));
+    // 임시로 캐시를 무시하고 Google API를 직접 호출
+    if (cached != null && !cached.isEmpty()) return cached;
+    
+    String lk = lockKey(gk);
+    if (!acquireLock(lk, Duration.ofSeconds(15))) {
+      List<PlaceDto> waited = spinWaitCache(() -> getL2(gk), 60, 50);
+      if (waited != null) return waited;
+    }
+    
+    log.info("REMOTE FETCH google nearby lat={} lon={} limit={}", lat, lon, limit);
+    List<PlaceDto> out = googleFetchNearby(lat, lon, limit, 1);
+    putL1(gk, out); putL2(gk, out, TTL_OTM);
+    releaseLock(lk);
+    return out;
+  }
 }
