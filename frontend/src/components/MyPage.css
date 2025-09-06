@@ -148,3 +148,125 @@
   color: #3b82f6;
   font-weight: 500;
 }
+
+/* 내 게시글 탭 스타일 */
+.mypage-wrapper .posts-container {
+  padding: 20px 0;
+}
+
+.mypage-wrapper .posts-section {
+  margin-bottom: 32px;
+}
+
+.mypage-wrapper .section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.mypage-wrapper .posts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.mypage-wrapper .post-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.mypage-wrapper .post-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* 트립톡 게시글 스타일 */
+.mypage-wrapper .trip-talk-post .post-content {
+  margin-bottom: 12px;
+}
+
+.mypage-wrapper .trip-talk-post .post-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #374151;
+  margin: 0 0 8px 0;
+}
+
+.mypage-wrapper .trip-talk-post .post-image {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+/* 동행구하기 게시글 스타일 */
+.mypage-wrapper .accompany-post .post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.mypage-wrapper .accompany-post .post-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+  flex: 1;
+  margin-right: 8px;
+}
+
+.mypage-wrapper .status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.mypage-wrapper .status-badge.open {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.mypage-wrapper .status-badge.closed {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.mypage-wrapper .accompany-post .post-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #6b7280;
+  margin: 0 0 12px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 공통 스타일 */
+.mypage-wrapper .post-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.mypage-wrapper .stat-item {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.mypage-wrapper .post-date {
+  font-size: 12px;
+  color: #9ca3af;
+}

@@ -267,8 +267,9 @@ export default function AccompanyDetail() {
   return (
     <>
       <Header />
-      <div className="tm-container">
-        <div className="tm-board">
+      <div className="accompany-detail-page">
+        <div className="tm-container">
+          <div className="tm-board">
           <div className="tm-board__header">
             <h2 className="tm-board__title">동행 상세</h2>
             <div className="tm-board__actions">
@@ -471,7 +472,8 @@ export default function AccompanyDetail() {
               </>
             )}
           </div>
-      </div>
+        </div>
+        </div>
       </div>
       <ApplyModal 
         open={applyOpen} 

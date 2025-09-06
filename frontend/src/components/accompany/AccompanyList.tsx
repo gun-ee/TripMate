@@ -60,7 +60,8 @@ export default function AccompanyList() {
   return (
     <>
       <Header />
-      <div className="tm-container">
+      <div className="accompany-list-page">
+        <div className="tm-container">
         <div className="tm-board">
           <div className="tm-board__header">
             <h2 className="tm-board__title">동행구하기</h2>
@@ -246,6 +247,7 @@ export default function AccompanyList() {
               </button>
             </div>
           )}
+        </div>
         </div>
 
         {/* 글쓰기 모달 (TripMate 모달 톤에 맞춰 분리) */}

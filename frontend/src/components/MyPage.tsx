@@ -8,6 +8,7 @@ import type { MyProfileResponse, MyTripCard } from '../api/mypage';
 
 // 추가: 동행 신청 관리 API (경로는 프로젝트에 맞게 조정)
 import { accompanyApi, type PostWithApplications } from '../api/accompany';
+import { myPostsApi, type AllPosts, type TripTalkPost, type AccompanyPostItem } from '../api/myPosts';
 
 import Header from './Header';
 import FollowModal from './FollowModal';
@@ -33,8 +34,8 @@ const MyPage: React.FC = () => {
   const [targetUserId, setTargetUserId] = useState<number | null>(null);
   const [followCounts, setFollowCounts] = useState<{ followerCount: number; followingCount: number }>({ followerCount: 0, followingCount: 0 });
 
-  // 탭 상태: trips | accompany
-  const [activeTab, setActiveTab] = useState<'trips' | 'accompany'>('trips');
+  // 탭 상태: trips | accompany | posts
+  const [activeTab, setActiveTab] = useState<'trips' | 'accompany' | 'posts'>('trips');
 
   // 여행 목록 (무한스크롤)
   const [trips, setTrips] = useState<MyTripCard[]>([]);
@@ -46,6 +47,10 @@ const MyPage: React.FC = () => {
   // 동행 신청 목록 (내가 작성한 동행 글에 대한 신청자들)
   const [appsByPost, setAppsByPost] = useState<Record<number, AppItem[]>>({});
   const [appsLoading, setAppsLoading] = useState(false);
+
+  // 내 게시글 목록
+  const [myPosts, setMyPosts] = useState<AllPosts | null>(null);
+  const [postsLoading, setPostsLoading] = useState(false);
 
   // 동행신청 관리 (새로운 방식)
   const [accompanyPosts, setAccompanyPosts] = useState<PostWithApplications[]>([]);
@@ -210,6 +215,27 @@ const MyPage: React.FC = () => {
     if (activeTab === 'accompany') loadApplications();
   }, [activeTab, loadApplications]);
 
+  // 내 게시글 로드
+  const loadMyPosts = useCallback(async () => {
+    if (targetUserId) return; // 다른 유저 페이지에서는 내 게시글 조회 불가
+    if (postsLoading) return;
+    
+    setPostsLoading(true);
+    try {
+      const data = await myPostsApi.getMyPosts();
+      setMyPosts(data);
+    } catch (e) {
+      console.error('내 게시글 로드 실패:', e);
+    } finally {
+      setPostsLoading(false);
+    }
+  }, [targetUserId]);
+
+  // 게시글 탭 진입 시 목록 로드
+  useEffect(() => {
+    if (activeTab === 'posts') loadMyPosts();
+  }, [activeTab, loadMyPosts]);
+
   // 수락/거부
   const acceptApp = async (id: number) => {
     await accompanyApi.accept(id);
@@ -242,10 +268,6 @@ const MyPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="profile-actions">
-            <button className="btn-outline">수정</button>
-            <button className="btn-solid">공유</button>
-          </div>
 
           <div className="profile-meta">
             <div>여행 <b>{profile?.tripCount ?? 0}</b>회</div>
@@ -268,6 +290,12 @@ const MyPage: React.FC = () => {
               onClick={() => setActiveTab('accompany')}
             >
               동행 신청
+            </button>
+            <button
+              className={`tab ${activeTab === 'posts' ? 'active' : ''}`}
+              onClick={() => setActiveTab('posts')}
+            >
+              내 게시글
             </button>
           </div>
 
@@ -333,6 +361,97 @@ const MyPage: React.FC = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* 내 게시글 탭 */}
+          {activeTab === 'posts' && (
+            <>
+              {postsLoading ? (
+                <div className="loading-state">
+                  <div className="loading-spinner"></div>
+                  <p>게시글을 불러오는 중...</p>
+                </div>
+              ) : myPosts ? (
+                <div className="posts-container">
+                  {/* 트립톡 게시글 */}
+                  {myPosts.tripTalkPosts.length > 0 && (
+                    <div className="posts-section">
+                      <h3 className="section-title">📝 트립톡 게시글</h3>
+                      <div className="posts-grid">
+                        {myPosts.tripTalkPosts.map((post) => (
+                          <div key={post.id} className="post-card trip-talk-post">
+                            <div className="post-content">
+                              <p className="post-text">{post.content}</p>
+                              {post.imageUrl && (
+                                <img src={post.imageUrl} alt="게시글 이미지" className="post-image" />
+                              )}
+                            </div>
+                            <div className="post-stats">
+                              <span className="stat-item">❤️ {post.likeCount}</span>
+                              <span className="stat-item">💬 {post.commentCount}</span>
+                            </div>
+                            <div className="post-date">
+                              {new Date(post.createdAt).toLocaleDateString('ko-KR', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 동행구하기 게시글 */}
+                  {myPosts.accompanyPosts.length > 0 && (
+                    <div className="posts-section">
+                      <h3 className="section-title">🤝 동행구하기 게시글</h3>
+                      <div className="posts-grid">
+                        {myPosts.accompanyPosts.map((post) => (
+                          <div key={post.id} className="post-card accompany-post">
+                            <div className="post-header">
+                              <h4 className="post-title">{post.title}</h4>
+                              <span className={`status-badge ${post.status.toLowerCase()}`}>
+                                {post.status === 'OPEN' ? '모집중' : '마감'}
+                              </span>
+                            </div>
+                            <div className="post-content">
+                              <p className="post-text">{post.content}</p>
+                            </div>
+                            <div className="post-stats">
+                              <span className="stat-item">👥 신청 {post.applicationCount}명</span>
+                            </div>
+                            <div className="post-date">
+                              {new Date(post.createdAt).toLocaleDateString('ko-KR', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 게시글이 없는 경우 */}
+                  {myPosts.tripTalkPosts.length === 0 && myPosts.accompanyPosts.length === 0 && (
+                    <div className="empty-state">
+                      <p>작성한 게시글이 없습니다.</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <p>게시글을 불러올 수 없습니다.</p>
                 </div>
               )}
             </>
