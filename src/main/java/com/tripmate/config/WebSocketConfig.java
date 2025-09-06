@@ -34,6 +34,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
   @Override
   public void registerStompEndpoints(StompEndpointRegistry registry) {
+    // 기본 WebSocket 엔드포인트 (SockJS info 엔드포인트용)
+    registry.addEndpoint("/ws")
+      .addInterceptors(jwtHandshakeInterceptor)
+      .setAllowedOriginPatterns("*")
+      .withSockJS();
+
     // 지역 채팅용 WebSocket 엔드포인트
     registry.addEndpoint("/ws/region-chat")
       .addInterceptors(jwtHandshakeInterceptor)
@@ -73,28 +79,43 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         if (accessor.getUser() == null) {
           // Handshake에서 저장한 token을 꺼냄
           String token = (String) accessor.getSessionAttributes().get("token");
-          System.out.println("preSend - token: " + token);
+          System.out.println("🔐 [WebSocketConfig] preSend - token: " + (token != null ? "존재" : "없음"));
+          
           if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);
+            System.out.println("🔐 [WebSocketConfig] preSend - Bearer 제거 후 토큰: " + token.substring(0, Math.min(20, token.length())) + "...");
           }
-          System.out.println("preSend - processed token: " + token);
+          
           if (token != null) {
-            String email = jwtTokenProvider.getEmail(token);
-            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-            Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-            accessor.setUser(auth);
-            SecurityContextHolder.getContext().setAuthentication(auth);
-            
-            // Member 정보를 sessionAttributes에 저장하여 메시지 핸들러에서 사용
-            if (userDetails instanceof CustomUserDetails) {
-              CustomUserDetails customUserDetails = (CustomUserDetails) userDetails;
-              accessor.getSessionAttributes().put("memberId", customUserDetails.getMemberId());
-              accessor.getSessionAttributes().put("memberEmail", customUserDetails.getUsername());
+            try {
+              String email = jwtTokenProvider.getEmail(token);
+              System.out.println("🔐 [WebSocketConfig] preSend - 토큰에서 추출한 이메일: " + email);
+              
+              UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+              Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+              
+              // 인증 정보를 accessor에 설정
+              accessor.setUser(auth);
+              SecurityContextHolder.getContext().setAuthentication(auth);
+              
+              // Member 정보를 sessionAttributes에 저장하여 메시지 핸들러에서 사용
+              if (userDetails instanceof CustomUserDetails) {
+                CustomUserDetails customUserDetails = (CustomUserDetails) userDetails;
+                accessor.getSessionAttributes().put("memberId", customUserDetails.getMemberId());
+                accessor.getSessionAttributes().put("memberEmail", customUserDetails.getUsername());
+                accessor.getSessionAttributes().put("userDetails", customUserDetails);
+                System.out.println("🔐 [WebSocketConfig] preSend - Member ID: " + customUserDetails.getMemberId());
+              }
+              
+              System.out.println("✅ [WebSocketConfig] preSend - 인증 성공");
+            } catch (Exception e) {
+              System.out.println("❌ [WebSocketConfig] preSend - 토큰 검증 실패: " + e.getMessage());
             }
-            
-            System.out.println("preSend - auth created: " + auth);
-            System.out.println("preSend - SecurityContextHolder set: " + SecurityContextHolder.getContext().getAuthentication());
+          } else {
+            System.out.println("❌ [WebSocketConfig] preSend - 토큰이 없음");
           }
+        } else {
+          System.out.println("🔐 [WebSocketConfig] preSend - 이미 인증된 사용자: " + accessor.getUser().getName());
         }
         return message;
       }

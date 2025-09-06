@@ -15,6 +15,14 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
 }
 
+/* 헤더 아이콘 컨테이너 */
+.header-icons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+}
+
 /* 프로필 이미지 확대 모달 */
 .profile-modal-overlay {
   position: fixed;
@@ -243,10 +251,11 @@ span.main-navbar-link:focus,
   align-items: center;
   margin-left: auto;
   padding-right: 18px;
+  gap: 16px;
 }
 
 .main-navbar-right > *:not(:last-child) {
-  margin-right: 10px;
+  margin-right: 0;
 }
 
 .main-navbar-icon-btn {

@@ -2,6 +2,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { PostProvider } from './contexts/PostContext';
+import { WebSocketProvider } from './contexts/WebSocketContext';
 import Home from './components/Home';
 import MemberLogin from './components/MemberLogin';
 import MemberSignUp from './components/MemberSignUp';
@@ -10,6 +11,7 @@ import OAuth2RedirectHandler from './components/OAuth2RedirectHandler';
 import OAuthRedirect from './components/OAuthRedirect';
 import TripTalk from './components/TripTalk';
 import RegionChatExample from './components/RegionChatExample';
+import ChatRoomsPage from './components/chatroom/ChatRoomsPage';
 // import TripPlanPage from './components/TripPlan';
 import PlanPage from './components/PlanPage';
 import TripResultPage from './components/TripResultPage';
@@ -24,9 +26,10 @@ function App() {
   return (
     <AuthProvider>
       <PostProvider>
-        <Router>
-          <div className="App">
-            <Routes>
+        <WebSocketProvider>
+          <Router>
+            <div className="App">
+              <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<MemberLogin />} />
               <Route path="/signup" element={<MemberSignUp />} />
@@ -42,9 +45,11 @@ function App() {
               <Route path="/accompany" element={<AccompanyList />} />
               <Route path="/accompany/:id" element={<AccompanyDetail />} />
               <Route path="/accompany/:id/edit" element={<AccompanyEdit />} />
-            </Routes>
-          </div>
-        </Router>
+              <Route path="/chat/rooms" element={<ChatRoomsPage />} />
+              </Routes>
+            </div>
+          </Router>
+        </WebSocketProvider>
       </PostProvider>
     </AuthProvider>
   );

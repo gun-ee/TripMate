@@ -17,17 +17,22 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
         if (request instanceof ServletServerHttpRequest servletRequest) {
             // 1. URL 파라미터에서 토큰 찾기
             String token = servletRequest.getServletRequest().getParameter("token");
+            System.out.println("🔐 [JwtHandshakeInterceptor] URL 파라미터 토큰: " + (token != null ? "존재" : "없음"));
             
             // 2. 헤더에서도 토큰 찾기
             if (token == null) {
                 String authHeader = servletRequest.getServletRequest().getHeader("Authorization");
                 if (authHeader != null && authHeader.startsWith("Bearer ")) {
                     token = authHeader.substring(7);
+                    System.out.println("🔐 [JwtHandshakeInterceptor] 헤더에서 토큰 발견");
                 }
             }
             
             if (token != null) {
-                attributes.put("token", token);
+                attributes.put("token", "Bearer " + token);
+                System.out.println("🔐 [JwtHandshakeInterceptor] 토큰 저장 완료");
+            } else {
+                System.out.println("❌ [JwtHandshakeInterceptor] 토큰을 찾을 수 없음");
             }
         }
         return true;

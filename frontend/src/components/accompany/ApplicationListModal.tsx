@@ -107,14 +107,14 @@ export default function ApplicationListModal({ open, onClose, postId, postTitle 
   if (!open) return null;
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
+    <div className="application-modal-backdrop" onClick={onClose}>
+      <div className="application-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="application-modal-header">
           <h2>신청자 목록 - {postTitle}</h2>
-          <button className="modal-close" onClick={onClose}>×</button>
+          <button className="application-modal-close" onClick={onClose}>×</button>
         </div>
         
-        <div className="modal-content">
+        <div className="application-modal-content">
           {loading ? (
             <div className="loading">로딩 중...</div>
           ) : applications.length === 0 ? (

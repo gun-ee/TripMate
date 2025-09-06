@@ -22,6 +22,10 @@ public class CustomUserDetails implements UserDetails {
     return member.getId();
   }
 
+  public Member getMember() {
+    return member;
+  }
+
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
     // ex) ROLE_USER, ROLE_ADMIN

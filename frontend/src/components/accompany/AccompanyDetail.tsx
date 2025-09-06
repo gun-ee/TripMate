@@ -6,8 +6,10 @@ import type { PostSummary, PostDetail } from '../../api/accompany';
 import type { AccompanyComment } from '../../api/accompanyComment';
 import Header from '../Header';
 import axios from '../../api/axios';
+import { accompanyChatApi } from '../../api/accompanyChatApi';
 import Swal from 'sweetalert2';
 import './Accompany.css';
+import GroupChatModal from '../chatroom/GroupChatModal';
 
 function ApplyModal({ open, onClose, onSubmit, disabled = false }:{ 
   open:boolean; 
@@ -18,8 +20,8 @@ function ApplyModal({ open, onClose, onSubmit, disabled = false }:{
   const [message, setMessage] = useState('');
   if (!open) return null;
   return (
-    <div className="modal-backdrop">
-      <div className="modal">
+    <div className="apply-modal-backdrop">
+      <div className="apply-modal">
         <h3>참여 신청</h3>
         {disabled ? (
           <div className="already-applied-message">
@@ -54,6 +56,8 @@ export default function AccompanyDetail() {
   const [applyOpen, setApplyOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatRoomId, setChatRoomId] = useState<number|null>(null);
   const [hasApplied, setHasApplied] = useState(false);
   
   // 댓글 관련 상태
@@ -166,7 +170,7 @@ export default function AccompanyDetail() {
     // 이미 신청했는지 확인
     if (hasApplied) {
       Swal.fire({
-        icon: 'warning',
+        icon: 'info',
         title: '이미 신청하셨습니다',
         text: '이 게시글에는 이미 신청하셨습니다.',
         confirmButtonText: '확인'
@@ -176,7 +180,7 @@ export default function AccompanyDetail() {
 
     if (!msg.trim()) { 
       Swal.fire({
-        icon: 'warning',
+        icon: 'info',
         title: '입력 필요',
         text: '신청 내용을 입력하세요.',
         confirmButtonText: '확인'
@@ -198,7 +202,7 @@ export default function AccompanyDetail() {
       // 중복 신청 에러 처리
       if (e?.response?.data?.message === 'DUPLICATE') {
         Swal.fire({
-          icon: 'warning',
+          icon: 'info',
           title: '이미 신청하셨습니다',
           text: '이 게시글에는 이미 신청하셨습니다.',
           confirmButtonText: '확인'
@@ -263,7 +267,7 @@ export default function AccompanyDetail() {
     const result = await Swal.fire({
       title: '댓글 삭제',
       text: '댓글을 삭제하시겠습니까?',
-      icon: 'warning',
+      icon: 'info',
       showCancelButton: true,
       confirmButtonColor: '#d33',
       cancelButtonColor: '#3085d6',
@@ -296,7 +300,7 @@ export default function AccompanyDetail() {
     const result = await Swal.fire({
       title: '삭제 확인',
       text: '삭제하시겠습니까?',
-      icon: 'warning',
+      icon: 'info',
       showCancelButton: true,
       confirmButtonColor: '#d33',
       cancelButtonColor: '#3085d6',
@@ -328,19 +332,22 @@ export default function AccompanyDetail() {
 
   const doClose = async () => {
     const result = await Swal.fire({
-      title: '모집 마감',
-      text: '모집을 마감하시겠습니까?',
-      icon: 'warning',
+      title: '여행 단체채팅방이 생성됩니다',
+      text: '확인을 누르면 동행글이 마감되고 단체채팅방이 생성됩니다.',
+      icon: 'info',
       showCancelButton: true,
       confirmButtonColor: '#f59e0b',
       cancelButtonColor: '#3085d6',
-      confirmButtonText: '마감',
+      confirmButtonText: '확인',
       cancelButtonText: '취소'
     });
     
     if (result.isConfirmed) {
       try { 
-        await accompanyApi.close(postId); 
+        await accompanyApi.close(postId);
+        const room = await accompanyChatApi.closeAndCreateRoom(postId, [], post?.title ? `${post.title} 단체채팅` : undefined);
+        setChatRoomId(room.roomId); setChatOpen(true);
+        
         Swal.fire({
           icon: 'success',
           title: '마감 완료',
@@ -690,6 +697,13 @@ export default function AccompanyDetail() {
         onClose={()=>setApplyOpen(false)} 
         onSubmit={doApply}
         disabled={hasApplied}
+      />
+    
+      <GroupChatModal 
+        open={chatOpen} 
+        roomId={chatRoomId} 
+        onClose={()=>{setChatOpen(false); setChatRoomId(null);}} 
+        onLeft={()=>{setChatOpen(false); setChatRoomId(null);}} 
       />
     </>
   );

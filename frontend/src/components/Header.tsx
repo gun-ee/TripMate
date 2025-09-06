@@ -4,6 +4,9 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axiosInstance from '../api/axios';
 import './Header.css';
+import NotificationBell from './notifications/NotificationBell';
+import ChatIcon from './chat/ChatIcon';
+import ChatbotBanner from './chatbot/ChatbotBanner';
 
 interface SubMenuItem {
   name: string;
@@ -138,7 +141,8 @@ const Header: React.FC = () => {
 
 
   return (
-    <nav className="main-navbar">
+    <>
+      <nav className="main-navbar">
       <div className="main-navbar-container">
         {/* 로고 */}
         <a className="main-navbar-logo" href="/">
@@ -204,6 +208,12 @@ const Header: React.FC = () => {
         {/* 우측 아이콘/프로필 (로그인 상태) */}
         {isLoggedIn ? (
           <div className="main-navbar-right desktop-menu">
+            {/* 헤더 아이콘들 */}
+            <div className="header-icons">
+              <ChatIcon />
+              <NotificationBell />
+            </div>
+            
             <div className="main-navbar-profile-container">
               <div
                 className="main-navbar-profile"
@@ -394,8 +404,10 @@ const Header: React.FC = () => {
           </div>
         </div>
       )}
-
     </nav>
+    
+      <ChatbotBanner />
+    </>
   );
 };
 

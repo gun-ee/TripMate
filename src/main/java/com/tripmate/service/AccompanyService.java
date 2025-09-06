@@ -5,6 +5,7 @@ import com.tripmate.dto.AccompanyPostRequests;
 import com.tripmate.dto.AccompanyApplicationDtos;
 import com.tripmate.entity.*;
 import com.tripmate.repository.*;
+import com.tripmate.constant.NotificationType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +24,7 @@ public class AccompanyService {
     private final AccompanyApplicationRepository appRepo;
     private final TripRepository tripRepo;
     private final MemberRepository memberRepo;
+    private final NotificationService notificationService;
 
     public Page<AccompanyPostResponses.ListItem> listOpen(int page, int size) {
         return postRepo.findByStatusWithNull(AccompanyPost.Status.OPEN, PageRequest.of(page, size)).map(AccompanyPostResponses::of);
@@ -128,6 +130,17 @@ public class AccompanyService {
                 .status(AccompanyApplication.Status.PENDING)
                 .build();
         appRepo.save(a);
+        
+        // 게시글 작성자에게 알림 발송
+        String message = String.format("%s님이 동행 신청을 했습니다.", applicant.getNickname());
+        String linkUrl = String.format("/accompany/%d", postId);
+        notificationService.notify(
+            p.getAuthor(), 
+            NotificationType.ACCOMPANY_APPLICATION, 
+            message, 
+            linkUrl, 
+            a.getId()
+        );
     }
 
     public List<AccompanyApplicationDtos.Item> listApplicationsForOwner(Long ownerId) {
@@ -149,6 +162,17 @@ public class AccompanyService {
         var p = a.getPost();
         if (!p.getAuthor().getId().equals(ownerId)) throw new IllegalStateException("NOT_OWNER");
         a.setStatus(AccompanyApplication.Status.ACCEPTED);
+        
+        // 신청자에게 수락 알림 발송
+        String message = String.format("동행 신청이 수락되었습니다. (%s)", p.getTitle());
+        String linkUrl = String.format("/accompany/%d", p.getId());
+        notificationService.notify(
+            a.getApplicant(), 
+            NotificationType.ACCOMPANY_APPLICATION, 
+            message, 
+            linkUrl, 
+            a.getId()
+        );
     }
 
     @Transactional
@@ -157,5 +181,16 @@ public class AccompanyService {
         var p = a.getPost();
         if (!p.getAuthor().getId().equals(ownerId)) throw new IllegalStateException("NOT_OWNER");
         a.setStatus(AccompanyApplication.Status.REJECTED);
+        
+        // 신청자에게 거절 알림 발송
+        String message = String.format("동행 신청이 거절되었습니다. (%s)", p.getTitle());
+        String linkUrl = String.format("/accompany/%d", p.getId());
+        notificationService.notify(
+            a.getApplicant(), 
+            NotificationType.ACCOMPANY_APPLICATION, 
+            message, 
+            linkUrl, 
+            a.getId()
+        );
     }
 }

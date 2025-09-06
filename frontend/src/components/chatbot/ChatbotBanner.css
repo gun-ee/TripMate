@@ -1,0 +1,212 @@
+/* ChatbotBanner.css - TripMate 디자인 시스템과 일관성 유지 */
+
+.chatbot-banner {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 320px;
+  background: linear-gradient(135deg, #26a69a 0%, #00897b 100%);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(38, 166, 154, 0.3);
+  z-index: 1000;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chatbot-banner.minimized {
+  width: 200px;
+  height: 60px;
+}
+
+.chatbot-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  color: white;
+}
+
+.chatbot-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.chatbot-icon {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.chatbot-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.chatbot-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chatbot-description {
+  font-size: 12px;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chatbot-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+}
+
+.chatbot-btn {
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.chatbot-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.close-btn:hover {
+  background: rgba(231, 76, 60, 0.8);
+}
+
+.chatbot-footer {
+  padding: 0 20px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.chatbot-open-btn {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.chatbot-open-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* 최소화 상태에서 텍스트 숨기기 */
+.chatbot-banner.minimized .chatbot-text {
+  display: none;
+}
+
+.chatbot-banner.minimized .chatbot-actions {
+  margin-left: 0;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 480px) {
+  .chatbot-banner {
+    bottom: 10px;
+    right: 10px;
+    left: 10px;
+    width: auto;
+  }
+  
+  .chatbot-banner.minimized {
+    width: 160px;
+    right: 10px;
+    left: auto;
+  }
+  
+  .chatbot-content {
+    padding: 12px 16px;
+  }
+  
+  .chatbot-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+  
+  .chatbot-title {
+    font-size: 14px;
+  }
+  
+  .chatbot-description {
+    font-size: 11px;
+  }
+}
+
+/* 호버 효과 */
+.chatbot-banner:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(38, 166, 154, 0.4);
+}
+
+/* 펄스 애니메이션 (주의 끌기) */
+.chatbot-banner::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #26a69a, #00897b, #26a69a);
+  border-radius: 18px;
+  z-index: -1;
+  animation: pulse-border 3s ease-in-out infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
