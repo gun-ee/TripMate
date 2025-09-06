@@ -26,8 +26,11 @@ public class AccompanyController {
 
     @GetMapping("/posts")
     public Page<AccompanyPostResponses.ListItem> list(@RequestParam(defaultValue = "0") int page,
-                                                      @RequestParam(defaultValue = "12") int size) {
-        return service.listOpen(page, size);
+                                                      @RequestParam(defaultValue = "12") int size,
+                                                      @RequestParam(required = false) String keyword,
+                                                      @RequestParam(required = false) String status,
+                                                      @RequestParam(required = false) String sortBy) {
+        return service.listOpen(page, size, keyword, status, sortBy);
     }
 
     @GetMapping("/posts/{id}")

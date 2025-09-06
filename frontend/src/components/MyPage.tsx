@@ -7,10 +7,11 @@ import { followApi } from '../api/follow';
 import type { MyProfileResponse, MyTripCard } from '../api/mypage';
 
 // 추가: 동행 신청 관리 API (경로는 프로젝트에 맞게 조정)
-import { accompanyApi } from '../api/accompany';
+import { accompanyApi, type PostWithApplications } from '../api/accompany';
 
 import Header from './Header';
 import FollowModal from './FollowModal';
+import ApplicationListModal from './accompany/ApplicationListModal';
 import './MyPage.css';
 
 type AppItem = {
@@ -45,6 +46,12 @@ const MyPage: React.FC = () => {
   // 동행 신청 목록 (내가 작성한 동행 글에 대한 신청자들)
   const [appsByPost, setAppsByPost] = useState<Record<number, AppItem[]>>({});
   const [appsLoading, setAppsLoading] = useState(false);
+
+  // 동행신청 관리 (새로운 방식)
+  const [accompanyPosts, setAccompanyPosts] = useState<PostWithApplications[]>([]);
+  const [accompanyLoading, setAccompanyLoading] = useState(false);
+  const [applicationModalOpen, setApplicationModalOpen] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<PostWithApplications | null>(null);
 
   // 모달 상태
   const [modalState, setModalState] = useState<{
@@ -109,6 +116,22 @@ const MyPage: React.FC = () => {
     }
   }, [cursor, loading, hasMore, targetUserId]);
 
+  // 동행신청 데이터 로드
+  const loadAccompanyPosts = useCallback(async () => {
+    if (targetUserId) return; // 다른 유저 페이지에서는 동행신청 관리 불가
+    if (accompanyLoading) return;
+    
+    setAccompanyLoading(true);
+    try {
+      const data = await accompanyApi.getMyPostsWithApplications();
+      setAccompanyPosts(data);
+    } catch (e) {
+      console.error('동행신청 데이터 로드 실패:', e);
+    } finally {
+      setAccompanyLoading(false);
+    }
+  }, [targetUserId]);
+
   // 첫 페이지 로드
   useEffect(() => {
     if (activeTab !== 'trips') return;
@@ -119,6 +142,13 @@ const MyPage: React.FC = () => {
     loadMore(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, targetUserId]);
+
+  // 동행신청 탭 로드
+  useEffect(() => {
+    if (activeTab === 'accompany') {
+      loadAccompanyPosts();
+    }
+  }, [activeTab, loadAccompanyPosts]);
 
   // targetUserId 변경 시 trips 상태 초기화 및 첫 로드
   useEffect(() => {
@@ -257,28 +287,54 @@ const MyPage: React.FC = () => {
           {/* 동행 신청 탭 */}
           {activeTab === 'accompany' && (
             <>
-              {appsLoading && <div className="loading">불러오는 중…</div>}
-              {!appsLoading && Object.keys(appsByPost).length === 0 && <p>신청 내역이 없습니다.</p>}
+              {accompanyLoading && <div className="loading">불러오는 중…</div>}
+              {!accompanyLoading && accompanyPosts.length === 0 && (
+                <div className="empty-state">
+                  <p>작성한 동행 게시글이 없습니다.</p>
+                </div>
+              )}
 
-              {Object.entries(appsByPost).map(([postId, list]) => (
-                <section key={postId} className="trip-card" style={{ padding: 12 }}>
-                  <h4 style={{ margin: '8px 0' }}>게시글 #{postId}</h4>
-                  <ul style={{ listStyle: 'none', padding: 0 }}>
-                    {list.map(a => (
-                      <li key={a.id} style={{ borderBottom: '1px solid #eee', padding: '8px 0' }}>
-                        <div>신청자: {a.applicantName ?? a.applicantId} • 상태: {a.status}</div>
-                        <div style={{ whiteSpace: 'pre-wrap' }}>{a.message}</div>
-                        {a.status === 'PENDING' && (
-                          <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                            <button onClick={() => acceptApp(a.id)}>수락</button>
-                            <button onClick={() => rejectApp(a.id)}>거부</button>
-                          </div>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ))}
+              {!accompanyLoading && accompanyPosts.length > 0 && (
+                <div className="accompany-posts-grid">
+                  {accompanyPosts.map((post) => (
+                    <div 
+                      key={post.postId} 
+                      className="accompany-post-card"
+                      onClick={() => {
+                        setSelectedPost(post);
+                        setApplicationModalOpen(true);
+                      }}
+                    >
+                      <div className="post-card-header">
+                        <h3 className="post-title">{post.postTitle}</h3>
+                        <div className={`status-badge ${post.postStatus.toLowerCase()}`}>
+                          {post.postStatus === 'OPEN' ? '모집중' : '마감'}
+                        </div>
+                      </div>
+                      
+                      <div className="post-card-content">
+                        <div className="application-count">
+                          <span className="count-icon">👥</span>
+                          <span className="count-text">
+                            {post.applicationCount}명 신청
+                          </span>
+                        </div>
+                        <div className="post-date">
+                          {new Date(post.createdAt).toLocaleDateString('ko-KR', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </div>
+                      </div>
+                      
+                      <div className="post-card-footer">
+                        <span className="view-applications">신청자 보기 →</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </main>
@@ -292,6 +348,19 @@ const MyPage: React.FC = () => {
           userId={targetUserId || profile.memberId}
           type={modalState.type}
           title={modalState.title}
+        />
+      )}
+
+      {/* 신청자 목록 모달 */}
+      {selectedPost && (
+        <ApplicationListModal
+          open={applicationModalOpen}
+          onClose={() => {
+            setApplicationModalOpen(false);
+            setSelectedPost(null);
+          }}
+          postId={selectedPost.postId}
+          postTitle={selectedPost.postTitle}
         />
       )}
     </div>

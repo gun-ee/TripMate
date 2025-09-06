@@ -17,19 +17,44 @@ export default function AccompanyList() {
     totalElements: number;
   }>({ content: [], totalPages: 0, number: 0, totalElements: 0 });
 
+  // 검색/필터링 상태
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'OPEN' | 'CLOSED'>('ALL');
+  const [sortBy, setSortBy] = useState<'LATEST' | 'OLDEST' | 'TITLE'>('LATEST');
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
   const load = async (p = 0) => {
-    const res = await accompanyApi.list(p, size);
-    setData({
-      content: res.content,
-      totalPages: res.totalPages,
-      number: res.number,
-      totalElements: res.totalElements,
-    });
-    setPage(res.number);
+    setLoading(true);
+    try {
+      // 백엔드 API에 검색/필터링 파라미터 전달
+      const res = await accompanyApi.list(
+        p, 
+        size, 
+        searchKeyword.trim() || undefined, 
+        statusFilter !== 'ALL' ? statusFilter : undefined, 
+        sortBy
+      );
+      
+      setData({
+        content: res.content,
+        totalPages: res.totalPages,
+        number: res.number,
+        totalElements: res.totalElements,
+      });
+      setPage(res.number);
+    } catch (error) {
+      console.error('동행 목록 로드 실패:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // 검색/필터 변경 시 첫 페이지로 이동하여 다시 로드
+  useEffect(() => { load(0); }, [searchKeyword, statusFilter, sortBy]);
+  
+  // 초기 로드
   useEffect(() => { load(0); }, []);
 
   return (
@@ -46,6 +71,56 @@ export default function AccompanyList() {
               >
                 ✍️ 글쓰기
               </button>
+            </div>
+          </div>
+
+          {/* 검색/필터링 섹션 */}
+          <div className="tm-search-filter">
+            <div className="tm-search-bar">
+              <div className="tm-search-input">
+                <input
+                  type="text"
+                  placeholder="제목 또는 작성자로 검색..."
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  className="tm-input"
+                />
+                <button className="tm-search-btn" type="button">
+                  🔍
+                </button>
+              </div>
+            </div>
+            
+            <div className="tm-filter-controls">
+              <div className="tm-filter-group">
+                <label className="tm-filter-label">상태</label>
+                <select 
+                  value={statusFilter} 
+                  onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'OPEN' | 'CLOSED')}
+                  className="tm-select"
+                >
+                  <option value="ALL">전체</option>
+                  <option value="OPEN">모집중</option>
+                  <option value="CLOSED">마감</option>
+                </select>
+              </div>
+              
+              <div className="tm-filter-group">
+                <label className="tm-filter-label">정렬</label>
+                <select 
+                  value={sortBy} 
+                  onChange={(e) => setSortBy(e.target.value as 'LATEST' | 'OLDEST' | 'TITLE')}
+                  className="tm-select"
+                >
+                  <option value="LATEST">최신순</option>
+                  <option value="OLDEST">오래된순</option>
+                  <option value="TITLE">제목순</option>
+                </select>
+              </div>
+              
+              <div className="tm-filter-results">
+                총 {data.totalElements}개의 동행글
+              </div>
             </div>
           </div>
 
@@ -68,11 +143,27 @@ export default function AccompanyList() {
                 </tr>
               </thead>
               <tbody>
-                {data.content.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="tm-table__loading">
+                      <div className="tm-loading-spinner">⏳</div>
+                      검색 중...
+                    </td>
+                  </tr>
+                ) : data.content.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="tm-table__empty">
-                      아직 등록된 동행 글이 없습니다.<br />
-                      첫 번째 동행 글을 작성해보세요!
+                      {searchKeyword || statusFilter !== 'ALL' ? (
+                        <>
+                          검색 결과가 없습니다.<br />
+                          다른 검색어나 필터를 시도해보세요.
+                        </>
+                      ) : (
+                        <>
+                          아직 등록된 동행 글이 없습니다.<br />
+                          첫 번째 동행 글을 작성해보세요!
+                        </>
+                      )}
                     </td>
                   </tr>
                 ) : (
@@ -80,9 +171,31 @@ export default function AccompanyList() {
                     <tr key={item.id}>
                       <td className="tm-table__num">{data.totalElements - (page * size) - idx}</td>
                       <td className="tm-table__title">
-                        <Link to={`/accompany/${item.id}`} className="tm-link">{item.title}</Link>
+                        <Link to={`/accompany/${item.id}`} className="tm-link">
+                          {searchKeyword ? (
+                            <span dangerouslySetInnerHTML={{
+                              __html: item.title.replace(
+                                new RegExp(`(${searchKeyword})`, 'gi'),
+                                '<mark>$1</mark>'
+                              )
+                            }} />
+                          ) : (
+                            item.title
+                          )}
+                        </Link>
                       </td>
-                      <td className="tm-table__author">{item.authorName ?? item.authorId}</td>
+                      <td className="tm-table__author">
+                        {searchKeyword ? (
+                          <span dangerouslySetInnerHTML={{
+                            __html: (item.authorName ?? item.authorId).replace(
+                              new RegExp(`(${searchKeyword})`, 'gi'),
+                              '<mark>$1</mark>'
+                            )
+                          }} />
+                        ) : (
+                          item.authorName ?? item.authorId
+                        )}
+                      </td>
                       <td className="tm-table__date">
                         {new Date(item.createdAt).toLocaleDateString('ko-KR', {
                           year: 'numeric',

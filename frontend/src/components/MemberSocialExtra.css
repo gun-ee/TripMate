@@ -67,27 +67,31 @@
   width: 6rem;
   height: 6rem;
   margin: 0 auto 1.5rem;
-}
-
-.profile-image {
-  width: 6rem;
-  height: 6rem;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 0.125rem solid var(--mustard);
-  box-shadow: 0 0.25rem 1rem 0 rgba(0, 0, 0, 0.1);
-}
-
-.profile-image-placeholder {
-  width: 6rem;
-  height: 6rem;
-  border-radius: 50%;
-  background: var(--input-bg);
-  border: 0.125rem solid var(--mustard);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0.25rem 1rem 0 rgba(0, 0, 0, 0.1);
+}
+
+.member-social-extra-page .profile-image {
+  width: 6rem !important;
+  height: 6rem !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  border: 0.125rem solid var(--mustard) !important;
+  box-shadow: 0 0.25rem 1rem 0 rgba(0, 0, 0, 0.1) !important;
+  display: block !important;
+}
+
+.member-social-extra-page .profile-image-placeholder {
+  width: 6rem !important;
+  height: 6rem !important;
+  border-radius: 50% !important;
+  background: var(--input-bg) !important;
+  border: 0.125rem solid var(--mustard) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 0.25rem 1rem 0 rgba(0, 0, 0, 0.1) !important;
 }
 
 .profile-image-placeholder svg {
@@ -219,15 +223,15 @@
     font-size: 1.125rem;
   }
   
-  .profile-image-wrapper {
+  .member-social-extra-page .profile-image-wrapper {
     width: 5rem;
     height: 5rem;
   }
   
-  .profile-image,
-  .profile-image-placeholder {
-    width: 5rem;
-    height: 5rem;
+  .member-social-extra-page .profile-image,
+  .member-social-extra-page .profile-image-placeholder {
+    width: 5rem !important;
+    height: 5rem !important;
   }
   
   .profile-image-placeholder svg {

@@ -8,6 +8,8 @@ import com.tripmate.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -23,7 +25,46 @@ public class AccompanyService {
     private final MemberRepository memberRepo;
 
     public Page<AccompanyPostResponses.ListItem> listOpen(int page, int size) {
-        return postRepo.findByStatus(AccompanyPost.Status.OPEN, PageRequest.of(page, size)).map(AccompanyPostResponses::of);
+        return postRepo.findByStatusWithNull(AccompanyPost.Status.OPEN, PageRequest.of(page, size)).map(AccompanyPostResponses::of);
+    }
+
+    public Page<AccompanyPostResponses.ListItem> listOpen(int page, int size, String keyword, String status, String sortBy) {
+        // 정렬 설정
+        Sort sort = getSort(sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+        
+        // 상태 필터
+        AccompanyPost.Status statusFilter = getStatusFilter(status);
+        
+        // 검색 및 필터링 실행
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return postRepo.findByKeywordAndStatus(keyword.trim(), statusFilter, pageable).map(AccompanyPostResponses::of);
+        } else {
+            return postRepo.findByStatusWithNull(statusFilter, pageable).map(AccompanyPostResponses::of);
+        }
+    }
+
+    private Sort getSort(String sortBy) {
+        if (sortBy == null) return Sort.by(Sort.Direction.DESC, "createdAt");
+        
+        return switch (sortBy.toUpperCase()) {
+            case "OLDEST" -> Sort.by(Sort.Direction.ASC, "createdAt");
+            case "TITLE" -> Sort.by(Sort.Direction.ASC, "title");
+            case "LATEST" -> Sort.by(Sort.Direction.DESC, "createdAt");
+            default -> Sort.by(Sort.Direction.DESC, "createdAt");
+        };
+    }
+
+    private AccompanyPost.Status getStatusFilter(String status) {
+        if (status == null || status.equalsIgnoreCase("ALL")) {
+            return null; // 모든 상태
+        }
+        
+        return switch (status.toUpperCase()) {
+            case "OPEN" -> AccompanyPost.Status.OPEN;
+            case "CLOSED" -> AccompanyPost.Status.CLOSED;
+            default -> null; // 기본값을 null로 변경 (모든 상태)
+        };
     }
 
     public AccompanyPostResponses.Detail get(Long id) {

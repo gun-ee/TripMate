@@ -31,4 +31,13 @@ public class AccompanyApplication extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     private Status status = Status.PENDING;
+    
+    // 상태 업데이트 메서드
+    public void accept() {
+        this.status = Status.ACCEPTED;
+    }
+    
+    public void reject() {
+        this.status = Status.REJECTED;
+    }
 }
