@@ -3,6 +3,7 @@ package com.tripmate.service;
 import com.tripmate.dto.AccompanyApplicationResponses;
 import com.tripmate.entity.AccompanyApplication;
 import com.tripmate.entity.AccompanyPost;
+import com.tripmate.entity.Member;
 import com.tripmate.repository.AccompanyApplicationRepository;
 import com.tripmate.repository.AccompanyPostRepository;
 import lombok.RequiredArgsConstructor;
@@ -84,5 +85,16 @@ public class AccompanyApplicationService {
         }
         
         applicationRepository.save(application);
+    }
+
+    // 특정 게시글에 대한 내 신청 상태 확인
+    public boolean checkMyApplication(Long postId, Long memberId) {
+        AccompanyPost post = postRepository.findById(postId)
+            .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
+        
+        Member applicant = new Member();
+        applicant.setId(memberId);
+        
+        return applicationRepository.existsByPostAndApplicant(post, applicant);
     }
 }

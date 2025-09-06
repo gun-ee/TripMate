@@ -40,4 +40,10 @@ public class AccompanyApplicationController {
                                       @RequestParam String status) {
         service.updateApplicationStatus(applicationId, currentMemberId(), status);
     }
+
+    // 특정 게시글에 대한 내 신청 상태 확인
+    @GetMapping("/check/{postId}")
+    public boolean checkMyApplication(@PathVariable Long postId) {
+        return service.checkMyApplication(postId, currentMemberId());
+    }
 }

@@ -1560,3 +1560,19 @@ mark {
   margin: 0;
   font-size: 16px;
 }
+
+/* 이미 신청한 경우 메시지 스타일 */
+.already-applied-message {
+  padding: 1.5rem;
+  text-align: center;
+  background: var(--primary-light);
+  border-radius: var(--border-radius-small);
+  margin-bottom: 1rem;
+}
+
+.already-applied-message p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 500;
+}

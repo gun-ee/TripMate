@@ -7,24 +7,37 @@ import axios from '../../api/axios';
 import Swal from 'sweetalert2';
 import './Accompany.css';
 
-function ApplyModal({ open, onClose, onSubmit }:{ open:boolean; onClose:()=>void; onSubmit:(msg:string)=>void }) {
+function ApplyModal({ open, onClose, onSubmit, disabled = false }:{ 
+  open:boolean; 
+  onClose:()=>void; 
+  onSubmit:(msg:string)=>void;
+  disabled?: boolean;
+}) {
   const [message, setMessage] = useState('');
   if (!open) return null;
   return (
     <div className="modal-backdrop">
       <div className="modal">
         <h3>참여 신청</h3>
-        <textarea 
-          rows={6} 
-          value={message} 
-          onChange={e=>setMessage(e.target.value)} 
-          placeholder="간단한 소개 및 참여 의사를 적어주세요.&#10;예: 안녕하세요! 같은 관심사를 가진 분들과 함께 여행하고 싶습니다."
-        />
+        {disabled ? (
+          <div className="already-applied-message">
+            <p>이미 신청하신 게시글입니다.</p>
+          </div>
+        ) : (
+          <textarea 
+            rows={6} 
+            value={message} 
+            onChange={e=>setMessage(e.target.value)} 
+            placeholder="간단한 소개 및 참여 의사를 적어주세요.&#10;예: 안녕하세요! 같은 관심사를 가진 분들과 함께 여행하고 싶습니다."
+          />
+        )}
         <div className="modal-actions">
           <button className="tm-btn" onClick={onClose}>취소</button>
-          <button className="tm-btn tm-btn--primary" onClick={()=>onSubmit(message)}>
-            ✉️ 신청하기
-          </button>
+          {!disabled && (
+            <button className="tm-btn tm-btn--primary" onClick={()=>onSubmit(message)}>
+              ✉️ 신청하기
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -39,6 +52,7 @@ export default function AccompanyDetail() {
   const [applyOpen, setApplyOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasApplied, setHasApplied] = useState(false);
   const navigate = useNavigate();
 
   // 현재 사용자 정보 가져오기
@@ -71,6 +85,15 @@ export default function AccompanyDetail() {
         } catch (tripError) {
           console.error('여행계획 로드 실패:', tripError);
           // 여행계획 로드 실패해도 게시글은 표시
+        }
+
+        // 내 신청 상태 확인
+        try {
+          const applied = await accompanyApi.checkMyApplication(postId);
+          setHasApplied(applied);
+        } catch (applyError) {
+          console.error('신청 상태 확인 실패:', applyError);
+          // 신청 상태 확인 실패해도 게시글은 표시
         }
       } catch (error) {
         console.error('게시글 로드 실패:', error);
@@ -121,6 +144,17 @@ export default function AccompanyDetail() {
   }
 
   const doApply = async (msg:string) => {
+    // 이미 신청했는지 확인
+    if (hasApplied) {
+      Swal.fire({
+        icon: 'warning',
+        title: '이미 신청하셨습니다',
+        text: '이 게시글에는 이미 신청하셨습니다.',
+        confirmButtonText: '확인'
+      });
+      return;
+    }
+
     if (!msg.trim()) { 
       Swal.fire({
         icon: 'warning',
@@ -132,6 +166,7 @@ export default function AccompanyDetail() {
     }
     try { 
       await accompanyApi.apply(postId, msg.trim()); 
+      setHasApplied(true); // 신청 상태 업데이트
       Swal.fire({
         icon: 'success',
         title: '신청 완료',
@@ -141,6 +176,17 @@ export default function AccompanyDetail() {
       setApplyOpen(false); 
     }
     catch (e:any) { 
+      // 중복 신청 에러 처리
+      if (e?.response?.data?.message === 'DUPLICATE') {
+        Swal.fire({
+          icon: 'warning',
+          title: '이미 신청하셨습니다',
+          text: '이 게시글에는 이미 신청하셨습니다.',
+          confirmButtonText: '확인'
+        });
+        setHasApplied(true);
+        return;
+      }
       Swal.fire({
         icon: 'error',
         title: '신청 실패',
@@ -389,10 +435,11 @@ export default function AccompanyDetail() {
             {/* 참여 신청 버튼 - 작성자가 아니고 모집중일 때만 표시 */}
             {post.status === 'OPEN' && currentUserId !== post.authorId && (
               <button 
-                className="tm-btn tm-btn--primary" 
+                className={`tm-btn ${hasApplied ? 'tm-btn--secondary' : 'tm-btn--primary'}`}
                 onClick={() => setApplyOpen(true)}
+                disabled={hasApplied}
               >
-                ✉️ 참여 신청
+                {hasApplied ? '✅ 신청 완료' : '✉️ 참여 신청'}
               </button>
             )}
             
@@ -426,7 +473,12 @@ export default function AccompanyDetail() {
           </div>
       </div>
       </div>
-      <ApplyModal open={applyOpen} onClose={()=>setApplyOpen(false)} onSubmit={doApply} />
+      <ApplyModal 
+        open={applyOpen} 
+        onClose={()=>setApplyOpen(false)} 
+        onSubmit={doApply}
+        disabled={hasApplied}
+      />
     </>
   );
 }

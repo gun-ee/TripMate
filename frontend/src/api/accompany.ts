@@ -80,4 +80,9 @@ export const accompanyApi = {
   updateApplicationStatus: async (applicationId: number, status: 'ACCEPTED'|'REJECTED') => {
     await axios.put(`/accompany-applications/${applicationId}/status?status=${status}`);
   },
+
+  checkMyApplication: async (postId: number): Promise<boolean> => {
+    const { data } = await axios.get(`/accompany-applications/check/${postId}`);
+    return data as boolean;
+  },
 };
