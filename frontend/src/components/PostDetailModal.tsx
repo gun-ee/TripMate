@@ -158,168 +158,167 @@ const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, isOpen, onClose
   if (!isOpen || !currentPost) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                 <div className="modal-header">
-           <h2>{currentPost.title}</h2>
-           <button className="close-btn" onClick={onClose}>
-             <FaTimes />
-           </button>
-         </div>
-
-        <div className="modal-body">
-          {/* 게시글 내용 */}
-          <div className="post-detail">
-            <div className="post-header">
-                             <img 
-                 src={currentPost.authorProfileImg ? `http://localhost:80${currentPost.authorProfileImg}` : '/images/logo.png'} 
-                 alt="프로필" 
-                 className="author-avatar"
-                 onError={(e) => {
-                   const target = e.target as HTMLImageElement;
-                   if (target.src !== '/images/logo.png') {
-                     target.src = '/images/logo.png';
-                   }
-                 }}
-               />
-               <div className="author-info">
-                 <span className="author-name">{currentPost.authorName}</span>
-                 <span className="post-date">
-                   {new Date(currentPost.createdAt).toLocaleDateString('ko-KR')}
-                 </span>
-               </div>
-              
-              {isAuthor && (
-                <div className="post-actions">
-                  {canEdit ? (
-                    <button 
-                      className="action-btn edit-btn"
-                      onClick={() => setIsEditing(!isEditing)}
-                    >
-                      <FaEdit />
-                    </button>
-                  ) : (
-                    <span className="edit-disabled" style={{ fontSize: '0.8rem', color: '#666', marginRight: '1rem' }}>
-                      이미 수정됨
-                    </span>
-                  )}
-                  <button 
-                    className="action-btn delete-btn"
-                    onClick={handleDelete}
-                  >
-                    <FaTrash />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {isEditing ? (
-              <form onSubmit={handleEditSubmit} className="edit-form">
-                <input
-                  type="text"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  className="edit-title-input"
-                  placeholder="제목을 입력하세요"
-                />
-                <textarea
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  className="edit-content-input"
-                  placeholder="내용을 입력하세요"
-                />
-                <div className="edit-actions">
-                  <button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? '수정 중...' : '수정 완료'}
-                  </button>
-                  <button type="button" onClick={() => setIsEditing(false)}>
-                    취소
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="post-content">
-                 <p className="post-text">{currentPost.content}</p>
-                 {currentPost.imageUrl && (
-                   <img 
-                     src={currentPost.imageUrl.startsWith('http') ? currentPost.imageUrl : `http://localhost:80${currentPost.imageUrl}`} 
-                     alt="게시글 이미지" 
-                     className="post-image"
-                     onError={(e) => {
-                       console.error('게시글 이미지 로드 실패:', currentPost.imageUrl);
-                       const target = e.target as HTMLImageElement;
-                       target.style.display = 'none';
-                     }}
-                   />
-                 )}
-              </div>
-            )}
-
-            <div className="post-footer">
-                             <button 
-                 className={`like-btn ${currentPost.isLikedByMe ? 'liked' : ''}`}
-                 onClick={handleLike}
-               >
-                 <FaHeart /> {currentPost.likeCount}
-               </button>
-               <span className="comment-count">
-                 <FaComment /> {currentPost.commentCount}
-               </span>
-            </div>
+    <div className="post-detail-modal">
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>{currentPost.title}</h2>
+            <button className="close-btn" onClick={onClose}>
+              <FaTimes />
+            </button>
           </div>
 
-                     {/* 댓글 섹션 */}
-           <div className="comments-section">
-                          <h3>댓글 ({localCommentCount})</h3>
-            
-            {isLoggedIn && (
-              <form onSubmit={handleCommentSubmit} className="comment-form">
-                <textarea
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="댓글을 입력하세요..."
-                  className="comment-input"
+          <div className="modal-body">
+            {/* 게시글 내용 */}
+            <div className="post-detail">
+              <div className="post-header">
+                <img 
+                  src={currentPost.authorProfileImg ? `http://localhost:80${currentPost.authorProfileImg}` : '/images/logo.png'} 
+                  alt="프로필" 
+                  className="author-avatar"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    if (target.src !== '/images/logo.png') {
+                      target.src = '/images/logo.png';
+                    }
+                  }}
                 />
-                <button 
-                  type="submit" 
-                  disabled={isSubmitting || !newComment.trim()}
-                  className="comment-submit-btn"
-                >
-                  {isSubmitting ? '작성 중...' : '댓글 작성'}
-                </button>
-              </form>
-            )}
+                <div className="author-info">
+                  <span className="author-name">{currentPost.authorName}</span>
+                  <span className="post-date">
+                    {new Date(currentPost.createdAt).toLocaleDateString('ko-KR')}
+                  </span>
+                </div>
+                
+                {isAuthor && (
+                  <div className="action-buttons">
+                    <button 
+                      className={`action-btn edit-btn ${!canEdit ? 'disabled' : ''}`}
+                      onClick={canEdit ? () => setIsEditing(!isEditing) : undefined}
+                      title={canEdit ? "수정" : "이미 수정됨"}
+                      disabled={!canEdit}
+                    >
+                      <FaEdit style={{ width: '12px', height: '12px', display: 'block' }} />
+                    </button>
+                    <button 
+                      className="action-btn delete-btn"
+                      onClick={handleDelete}
+                      title="삭제"
+                    >
+                      <FaTrash style={{ width: '12px', height: '12px', display: 'block' }} />
+                    </button>
+                  </div>
+                )}
+              </div>
 
-                         <div className="comments-list">
-               {comments.map(comment => (
-                 <div key={comment.id} className="comment-item">
-                   <div className="comment-header">
-                     <img 
-                       src={comment.authorProfileImg ? `http://localhost:80${comment.authorProfileImg}` : '/images/logo.png'} 
-                       alt="프로필" 
-                       className="comment-avatar"
-                       onError={(e) => {
-                         const target = e.target as HTMLImageElement;
-                         if (target.src !== '/images/logo.png') {
-                           target.src = '/images/logo.png';
-                         }
-                       }}
-                     />
-                     <span className="comment-author">{comment.authorName}</span>
-                     <span className="comment-date">
-                       {new Date(comment.createdAt).toLocaleDateString('ko-KR')}
-                     </span>
-                     {/* 댓글 작성자만 삭제 가능 */}
-                     {isLoggedIn && nickname === comment.authorName && (
-                       <button 
-                         className="comment-delete-btn"
-                         onClick={async () => {
-                           const result = await showDeleteConfirm('댓글 삭제', '댓글을 삭제하시겠습니까?');
-                           if (result.isConfirmed) {
-                             try {
-                               await axiosInstance.delete(`/posts/${currentPost.id}/comments/${comment.id}`);
-                               await fetchComments();
-                                                               // 댓글 목록 새로고침으로 댓글 수 반영
+              {isEditing ? (
+                <form onSubmit={handleEditSubmit} className="edit-form">
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="edit-title-input"
+                    placeholder="제목을 입력하세요"
+                  />
+                  <textarea
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    className="edit-content-input"
+                    placeholder="내용을 입력하세요"
+                  />
+                  <div className="edit-actions">
+                    <button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? '수정 중...' : '수정 완료'}
+                    </button>
+                    <button type="button" onClick={() => setIsEditing(false)}>
+                      취소
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="post-content">
+                  <p className="post-text">{currentPost.content}</p>
+                  {currentPost.imageUrl && (
+                    <img 
+                      src={currentPost.imageUrl.startsWith('http') ? currentPost.imageUrl : `http://localhost:80${currentPost.imageUrl}`} 
+                      alt="게시글 이미지" 
+                      className="post-image"
+                      onError={(e) => {
+                        console.error('게시글 이미지 로드 실패:', currentPost.imageUrl);
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                      }}
+                    />
+                  )}
+                </div>
+              )}
+
+              <div className="post-footer">
+                <button 
+                  className={`like-btn ${currentPost.isLikedByMe ? 'liked' : ''}`}
+                  onClick={handleLike}
+                >
+                  <FaHeart /> {currentPost.likeCount}
+                </button>
+                <span className="comment-count">
+                  <FaComment /> {currentPost.commentCount}
+                </span>
+              </div>
+            </div>
+
+            {/* 댓글 섹션 */}
+            <div className="comments-section">
+              <h3>댓글 ({localCommentCount})</h3>
+              
+              {isLoggedIn && (
+                <form onSubmit={handleCommentSubmit} className="comment-form">
+                  <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="댓글을 입력하세요..."
+                    className="comment-input"
+                  />
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting || !newComment.trim()}
+                    className="comment-submit-btn"
+                  >
+                    {isSubmitting ? '작성 중...' : '댓글 작성'}
+                  </button>
+                </form>
+              )}
+
+              <div className="comments-list">
+                {comments.map(comment => (
+                  <div key={comment.id} className="comment-item">
+                    <div className="comment-header">
+                      <img 
+                        src={comment.authorProfileImg ? `http://localhost:80${comment.authorProfileImg}` : '/images/logo.png'} 
+                        alt="프로필" 
+                        className="comment-avatar"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (target.src !== '/images/logo.png') {
+                            target.src = '/images/logo.png';
+                          }
+                        }}
+                      />
+                      <span className="comment-author">{comment.authorName}</span>
+                      <span className="comment-date">
+                        {new Date(comment.createdAt).toLocaleDateString('ko-KR')}
+                      </span>
+                      {/* 댓글 작성자만 삭제 가능 */}
+                      {isLoggedIn && nickname === comment.authorName && (
+                        <button 
+                          className="comment-delete-btn"
+                          onClick={async () => {
+                            const result = await showDeleteConfirm('댓글 삭제', '댓글을 삭제하시겠습니까?');
+                            if (result.isConfirmed) {
+                              try {
+                                await axiosInstance.delete(`/posts/${currentPost.id}/comments/${comment.id}`);
+                                await fetchComments();
+                                
+                                // 댓글 목록 새로고침으로 댓글 수 반영
                                 await fetchComments();
                                 
                                 // 로컬 댓글 수 업데이트
@@ -328,28 +327,29 @@ const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, isOpen, onClose
                                 // PostContext 댓글 수 업데이트 (createdAt 보호됨)
                                 updatePostCommentCount(currentPost.id, -1);
                                 console.log('댓글 삭제 완료 - PostContext 댓글 수 업데이트');
-                             } catch (error) {
-                               console.error('댓글 삭제 실패:', error);
-                             }
-                           }
-                         }}
-                         style={{ 
-                           background: 'none', 
-                           border: 'none', 
-                           color: '#ff6b6b', 
-                           cursor: 'pointer',
-                           fontSize: '0.8rem',
-                           marginLeft: 'auto'
-                         }}
-                       >
-                         삭제
-                       </button>
-                     )}
-                   </div>
-                   <p className="comment-content">{comment.content}</p>
-                 </div>
-               ))}
-             </div>
+                              } catch (error) {
+                                console.error('댓글 삭제 실패:', error);
+                              }
+                            }
+                          }}
+                          style={{ 
+                            background: 'none', 
+                            border: 'none', 
+                            color: '#ff6b6b', 
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                            marginLeft: 'auto'
+                          }}
+                        >
+                          삭제
+                        </button>
+                      )}
+                    </div>
+                    <p className="comment-content">{comment.content}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>

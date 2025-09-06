@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { accompanyApi } from '../../api/accompany';
+import { accompanyCommentApi } from '../../api/accompanyComment';
 import type { PostSummary, PostDetail } from '../../api/accompany';
+import type { AccompanyComment } from '../../api/accompanyComment';
 import Header from '../Header';
 import axios from '../../api/axios';
 import Swal from 'sweetalert2';
@@ -53,6 +55,14 @@ export default function AccompanyDetail() {
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasApplied, setHasApplied] = useState(false);
+  
+  // 댓글 관련 상태
+  const [comments, setComments] = useState<AccompanyComment[]>([]);
+  const [commentText, setCommentText] = useState('');
+  const [commentLoading, setCommentLoading] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState('');
+  
   const navigate = useNavigate();
 
   // 현재 사용자 정보 가져오기
@@ -94,6 +104,15 @@ export default function AccompanyDetail() {
         } catch (applyError) {
           console.error('신청 상태 확인 실패:', applyError);
           // 신청 상태 확인 실패해도 게시글은 표시
+        }
+
+        // 댓글 로드
+        try {
+          const commentData = await accompanyCommentApi.getComments(postId);
+          setComments(commentData.comments);
+        } catch (commentError) {
+          console.error('댓글 로드 실패:', commentError);
+          // 댓글 로드 실패해도 게시글은 표시
         }
       } catch (error) {
         console.error('게시글 로드 실패:', error);
@@ -193,6 +212,83 @@ export default function AccompanyDetail() {
         text: e?.response?.data?.message || '신청 실패',
         confirmButtonText: '확인'
       });
+    }
+  };
+
+  // 댓글 작성
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    
+    setCommentLoading(true);
+    try {
+      const newComment = await accompanyCommentApi.createComment(postId, { content: commentText.trim() });
+      setComments(prev => [...prev, newComment]);
+      setCommentText('');
+    } catch (error: any) {
+      Swal.fire({
+        icon: 'error',
+        title: '댓글 작성 실패',
+        text: error?.response?.data?.message || '댓글 작성에 실패했습니다.',
+        confirmButtonText: '확인'
+      });
+    } finally {
+      setCommentLoading(false);
+    }
+  };
+
+  // 댓글 수정
+  const handleCommentEdit = async (commentId: number) => {
+    if (!editingText.trim()) return;
+    
+    try {
+      const updatedComment = await accompanyCommentApi.updateComment(commentId, { content: editingText.trim() });
+      setComments(prev => prev.map(comment => 
+        comment.id === commentId ? updatedComment : comment
+      ));
+      setEditingCommentId(null);
+      setEditingText('');
+    } catch (error: any) {
+      Swal.fire({
+        icon: 'error',
+        title: '댓글 수정 실패',
+        text: error?.response?.data?.message || '댓글 수정에 실패했습니다.',
+        confirmButtonText: '확인'
+      });
+    }
+  };
+
+  // 댓글 삭제
+  const handleCommentDelete = async (commentId: number) => {
+    const result = await Swal.fire({
+      title: '댓글 삭제',
+      text: '댓글을 삭제하시겠습니까?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: '삭제',
+      cancelButtonText: '취소'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await accompanyCommentApi.deleteComment(commentId);
+        setComments(prev => prev.filter(comment => comment.id !== commentId));
+        Swal.fire({
+          icon: 'success',
+          title: '삭제 완료',
+          text: '댓글이 삭제되었습니다.',
+          confirmButtonText: '확인'
+        });
+      } catch (error: any) {
+        Swal.fire({
+          icon: 'error',
+          title: '댓글 삭제 실패',
+          text: error?.response?.data?.message || '댓글 삭제에 실패했습니다.',
+          confirmButtonText: '확인'
+        });
+      }
     }
   };
 
@@ -473,7 +569,121 @@ export default function AccompanyDetail() {
             )}
           </div>
         </div>
+
+        {/* 댓글 섹션 */}
+        <div className="comments-section">
+          <h3 className="comments-title">💬 댓글 ({comments.length})</h3>
+          
+          {/* 댓글 작성 폼 */}
+          <form onSubmit={handleCommentSubmit} className="comment-form">
+            <div className="comment-input-group">
+              <textarea
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="댓글을 작성해주세요..."
+                className="comment-textarea"
+                rows={3}
+                disabled={commentLoading}
+              />
+              <button
+                type="submit"
+                className="comment-submit-btn"
+                disabled={!commentText.trim() || commentLoading}
+              >
+                {commentLoading ? '작성 중...' : '댓글 작성'}
+              </button>
+            </div>
+          </form>
+
+          {/* 댓글 목록 */}
+          <div className="comments-list">
+            {comments.length === 0 ? (
+              <div className="no-comments">
+                <p>아직 댓글이 없습니다. 첫 번째 댓글을 작성해보세요!</p>
+              </div>
+            ) : (
+              comments.map((comment) => (
+                <div key={comment.id} className="comment-item">
+                  <div className="comment-header">
+                    <div className="comment-author">
+                      <div className="comment-avatar">
+                        {comment.profileImage ? (
+                          <img src={comment.profileImage} alt="프로필" />
+                        ) : (
+                          <div className="avatar-placeholder">👤</div>
+                        )}
+                      </div>
+                      <div className="comment-info">
+                        <span className="comment-author-name">{comment.authorNickname}</span>
+                        <span className="comment-date">
+                          {new Date(comment.createdAt).toLocaleDateString('ko-KR', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                    {currentUserId === comment.authorId && (
+                      <div className="comment-actions">
+                        <button
+                          className="comment-action-btn"
+                          onClick={() => {
+                            setEditingCommentId(comment.id);
+                            setEditingText(comment.content);
+                          }}
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          className="comment-action-btn delete"
+                          onClick={() => handleCommentDelete(comment.id)}
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="comment-content">
+                    {editingCommentId === comment.id ? (
+                      <div className="comment-edit-form">
+                        <textarea
+                          value={editingText}
+                          onChange={(e) => setEditingText(e.target.value)}
+                          className="comment-edit-textarea"
+                          rows={2}
+                        />
+                        <div className="comment-edit-actions">
+                          <button
+                            className="comment-edit-save"
+                            onClick={() => handleCommentEdit(comment.id)}
+                          >
+                            저장
+                          </button>
+                          <button
+                            className="comment-edit-cancel"
+                            onClick={() => {
+                              setEditingCommentId(null);
+                              setEditingText('');
+                            }}
+                          >
+                            취소
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="comment-text">{comment.content}</p>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
+      </div>
       </div>
       <ApplyModal 
         open={applyOpen} 

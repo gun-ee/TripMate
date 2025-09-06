@@ -56,16 +56,18 @@ public class MyPostsResponses {
         private String content;
         private String status;
         private int applicationCount;
+        private int commentCount;
         private LocalDateTime createdAt;
         private String type = "ACCOMPANY";
 
-        public static AccompanyPostItem of(AccompanyPost post, int applicationCount) {
+        public static AccompanyPostItem of(AccompanyPost post, int applicationCount, int commentCount) {
             return AccompanyPostItem.builder()
                     .id(post.getId())
                     .title(post.getTitle())
                     .content(post.getContent())
                     .status(post.getStatus().name())
                     .applicationCount(applicationCount)
+                    .commentCount(commentCount)
                     .createdAt(post.getCreatedAt())
                     .build();
         }

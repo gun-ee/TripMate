@@ -16,6 +16,7 @@ export interface AccompanyPostItem {
   content: string;
   status: 'OPEN' | 'CLOSED';
   applicationCount: number;
+  commentCount: number;
   createdAt: string;
   type: 'ACCOMPANY';
 }

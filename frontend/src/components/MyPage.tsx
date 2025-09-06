@@ -13,6 +13,7 @@ import { myPostsApi, type AllPosts, type TripTalkPost, type AccompanyPostItem } 
 import Header from './Header';
 import FollowModal from './FollowModal';
 import ApplicationListModal from './accompany/ApplicationListModal';
+import PostDetailModal from './PostDetailModal';
 import './MyPage.css';
 
 type AppItem = {
@@ -51,6 +52,10 @@ const MyPage: React.FC = () => {
   // 내 게시글 목록
   const [myPosts, setMyPosts] = useState<AllPosts | null>(null);
   const [postsLoading, setPostsLoading] = useState(false);
+
+  // 트립톡 게시글 상세 모달
+  const [tripTalkModalOpen, setTripTalkModalOpen] = useState(false);
+  const [selectedTripTalkPost, setSelectedTripTalkPost] = useState<any>(null);
 
   // 동행신청 관리 (새로운 방식)
   const [accompanyPosts, setAccompanyPosts] = useState<PostWithApplications[]>([]);
@@ -246,6 +251,27 @@ const MyPage: React.FC = () => {
     await loadApplications();
   };
 
+  // 게시글 클릭 핸들러
+  const handleTripTalkPostClick = (post: TripTalkPost) => {
+    // TripTalkPost를 Post 타입으로 변환
+    const postForModal = {
+      id: post.id,
+      content: post.content,
+      imageUrl: post.imageUrl,
+      likeCount: post.likeCount,
+      commentCount: post.commentCount,
+      createdAt: post.createdAt,
+      authorName: '나', // 마이페이지에서는 본인 게시글
+      authorProfileImg: profile?.profileImage || ''
+    };
+    setSelectedTripTalkPost(postForModal);
+    setTripTalkModalOpen(true);
+  };
+
+  const handleAccompanyPostClick = (post: AccompanyPostItem) => {
+    navigate(`/accompany/${post.id}`);
+  };
+
   return (
     <div className="mypage-wrapper">
       <Header />
@@ -382,7 +408,11 @@ const MyPage: React.FC = () => {
                       <h3 className="section-title">📝 트립톡 게시글</h3>
                       <div className="posts-grid">
                         {myPosts.tripTalkPosts.map((post) => (
-                          <div key={post.id} className="post-card trip-talk-post">
+                          <div 
+                            key={post.id} 
+                            className="post-card trip-talk-post clickable"
+                            onClick={() => handleTripTalkPostClick(post)}
+                          >
                             <div className="post-content">
                               <p className="post-text">{post.content}</p>
                               {post.imageUrl && (
@@ -414,7 +444,11 @@ const MyPage: React.FC = () => {
                       <h3 className="section-title">🤝 동행구하기 게시글</h3>
                       <div className="posts-grid">
                         {myPosts.accompanyPosts.map((post) => (
-                          <div key={post.id} className="post-card accompany-post">
+                          <div 
+                            key={post.id} 
+                            className="post-card accompany-post clickable"
+                            onClick={() => handleAccompanyPostClick(post)}
+                          >
                             <div className="post-header">
                               <h4 className="post-title">{post.title}</h4>
                               <span className={`status-badge ${post.status.toLowerCase()}`}>
@@ -426,6 +460,7 @@ const MyPage: React.FC = () => {
                             </div>
                             <div className="post-stats">
                               <span className="stat-item">👥 신청 {post.applicationCount}명</span>
+                              <span className="stat-item">💬 댓글 {post.commentCount}개</span>
                             </div>
                             <div className="post-date">
                               {new Date(post.createdAt).toLocaleDateString('ko-KR', {
@@ -482,6 +517,16 @@ const MyPage: React.FC = () => {
           postTitle={selectedPost.postTitle}
         />
       )}
+
+      {/* 트립톡 게시글 상세 모달 */}
+      <PostDetailModal
+        post={selectedTripTalkPost}
+        isOpen={tripTalkModalOpen}
+        onClose={() => {
+          setTripTalkModalOpen(false);
+          setSelectedTripTalkPost(null);
+        }}
+      />
     </div>
   );
 };
@@ -506,5 +551,6 @@ function fmt(iso: string) {
   const d = new Date(iso);
   return `${d.getMonth() + 1}월 ${d.getDate()}일`;
 }
+
 
 export default MyPage;

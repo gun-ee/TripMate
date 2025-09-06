@@ -6,6 +6,7 @@ import com.tripmate.entity.AccompanyPost;
 import com.tripmate.repository.PostRepository;
 import com.tripmate.repository.AccompanyPostRepository;
 import com.tripmate.repository.AccompanyApplicationRepository;
+import com.tripmate.repository.AccompanyCommentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ public class MyPostsService {
     private final PostRepository postRepository;
     private final AccompanyPostRepository accompanyPostRepository;
     private final AccompanyApplicationRepository applicationRepository;
+    private final AccompanyCommentRepository commentRepository;
 
     public MyPostsResponses.AllPosts getMyPosts(Long memberId) {
         // 트립톡 게시글 조회
@@ -39,6 +41,15 @@ public class MyPostsService {
                 result -> (Long) result[1]
             ));
 
+        // 동행구하기 게시글의 댓글 수 조회
+        Map<Long, Long> commentCounts = commentRepository.countCommentsByPostIds(
+            accompanyPosts.stream().map(AccompanyPost::getId).collect(Collectors.toList())
+        ).stream()
+            .collect(Collectors.toMap(
+                result -> (Long) result[0],
+                result -> (Long) result[1]
+            ));
+
         // DTO 변환
         List<MyPostsResponses.TripTalkPost> tripTalkDtos = tripTalkPosts.stream()
             .map(MyPostsResponses.TripTalkPost::of)
@@ -47,7 +58,8 @@ public class MyPostsService {
         List<MyPostsResponses.AccompanyPostItem> accompanyDtos = accompanyPosts.stream()
             .map(post -> MyPostsResponses.AccompanyPostItem.of(
                 post, 
-                applicationCounts.getOrDefault(post.getId(), 0L).intValue()
+                applicationCounts.getOrDefault(post.getId(), 0L).intValue(),
+                commentCounts.getOrDefault(post.getId(), 0L).intValue()
             ))
             .collect(Collectors.toList());
 

@@ -2,6 +2,7 @@ package com.tripmate.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.List;
 
 @Entity
 @Table(name = "accompanyPost", indexes = {
@@ -34,4 +35,8 @@ public class AccompanyPost extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     private Status status = Status.OPEN;
+
+    // 댓글 연관관계
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<AccompanyComment> comments;
 }
