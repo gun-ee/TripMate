@@ -1,11 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import axios from '../api/axios';
 import Header from './Header';
 import PDFExport from './PDFExport';
+import GoogleMapComponent from './GoogleMapComponent';
 import './TripPlan.css';
 import './TripEdit.css';
-import { MapContainer, TileLayer, Marker, Polyline, GeoJSON } from 'react-leaflet';
-import type { LatLngExpression } from 'leaflet';
 
 type Day = {
   id: number; dayIndex: number; date: string; startTime: string; endTime: string;
@@ -61,8 +60,13 @@ export default function TripResultPage() {
     if (!id) return;
     (async () => {
       const { data } = await axios.get<TripResultView>(`/trips/${id}/edit-view`);
+      console.log('여행 데이터 로드:', data);
+      console.log('일차 데이터:', data.days);
+      console.log('1일차 아이템:', data.days[0]?.items);
       setTrip(data);
       setLocalDays(data.days);
+      // 초기 로드 시 1일차로 설정
+      setActive(0);
     })();
   }, []);
 
@@ -81,10 +85,10 @@ export default function TripResultPage() {
     fetchCurrentUser();
   }, []);
 
-  const center: LatLngExpression = useMemo(() => {
+  const center = useMemo(() => {
     const d = localDays[active];
-    if (!d || !d.items?.length) return [33.4996, 126.5312];
-    return [d.items[0].lat, d.items[0].lng] as LatLngExpression;
+    if (!d || !d.items?.length) return { lat: 33.4996, lng: 126.5312 };
+    return { lat: d.items[0].lat, lng: d.items[0].lng };
   }, [localDays, active]);
 
   // PDF 출력을 위한 데이터 변환 함수
@@ -230,26 +234,35 @@ export default function TripResultPage() {
         {/* 우측: 지도 */}
         <div className="results-wrap">
           <div style={{width:'100%', height:'100%'}}>
-            <MapContainer center={center} zoom={11} style={{ width: '100%', height: '100%' }} scrollWheelZoom>
-              <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              {(localDays[active]?.items ?? []).map((s) => (
-                <Marker key={s.id} position={[s.lat, s.lng] as LatLngExpression} />
-              ))}
-              {/* 폴리라인: OSRM geometry 있으면 GeoJSON, 없으면 직선 */}
-              {trip.days[active]?.legs && trip.days[active].legs!.length > 0
-                ? trip.days[active].legs!.map((lg) => {
-                    if (lg.routePolyline) {
-                      try {
-                        const obj = JSON.parse(lg.routePolyline);
-                        return <GeoJSON key={lg.id} data={obj as any} />;
-                      } catch { return null; }
-                    }
-                    return null;
-                  })
-                : (localDays[active]?.items?.length ?? 0) >= 2 && (
-                    <Polyline positions={(localDays[active].items).map(s => [s.lat, s.lng] as [number, number])} />
-                  )}
-            </MapContainer>
+            <GoogleMapComponent
+              center={center}
+              zoom={11}
+              places={(() => {
+                const items = localDays[active]?.items ?? [];
+                console.log('GoogleMapComponent places 데이터:', items);
+                return items.map((item, idx) => ({
+                  id: String(item.id),
+                  name: item.nameSnapshot,
+                  lat: item.lat,
+                  lng: item.lng,
+                  imageUrl: undefined
+                }));
+              })()}
+              itinerary={(() => {
+                const items = localDays[active]?.items ?? [];
+                console.log('GoogleMapComponent itinerary 데이터:', items);
+                return items.map((item, idx) => ({
+                  id: String(item.id),
+                  name: item.nameSnapshot,
+                  lat: item.lat,
+                  lng: item.lng,
+                  order: idx
+                }));
+              })()}
+              routeMode="osrm"
+              transport="driving"
+              className="google-map-container"
+            />
           </div>
         </div>
       </div>

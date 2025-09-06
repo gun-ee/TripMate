@@ -1,7 +1,7 @@
 // src/pages/PlanPage.tsx
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { GeoJsonObject } from 'geojson';
+// import type { GeoJsonObject } from 'geojson';
 import Header from './Header';
 import { showError, showSuccess, showWarning } from '../utils/sweetAlert';
 import CustomDatePicker from './CustomDatePicker';
@@ -35,10 +35,10 @@ type ItinStop = {
   isLodging?: boolean;
 };
 
-type TransportMode = 'driving' | 'foot' | 'bicycle';
+type TransportMode = 'driving' | 'transit';
 type RouteMode = 'lines' | 'osrm';
 
-const DEFAULT_CENTER = { lat: 37.5665, lng: 126.9780 }; // 서울
+// const DEFAULT_CENTER = { lat: 37.5665, lng: 126.9780 }; // 서울
 
 const toNum = (v: unknown) => {
   if (typeof v === 'number' && Number.isFinite(v)) return v;
@@ -48,6 +48,7 @@ const toNum = (v: unknown) => {
   }
   return null;
 };
+
 const getCoords = (p: Place): [number, number] | null => {
   const lat = toNum(p.lat) ?? toNum(p.y);
   const lng = toNum(p.lon) ?? toNum(p.lng) ?? toNum(p.x);
@@ -99,8 +100,8 @@ export default function PlanPage() {
   const [activeDay, setActiveDay] = useState(0);
   const [routeMode, setRouteMode] = useState<RouteMode>('lines');
   const [transport, setTransport] = useState<TransportMode>('driving');
-  const [routeGeo, setRouteGeo] = useState<GeoJsonObject | null>(null);
-  const [routeLine, setRouteLine] = useState<[number, number][]>([]);
+  // const [routeGeo, setRouteGeo] = useState<GeoJsonObject | null>(null);
+  // const [routeLine, setRouteLine] = useState<[number, number][]>([]);
 
   const mapLat = useMemo(() => (Array.isArray(center) ? Number(center[0]) : 0), [center]);
   const mapLon = useMemo(() => (Array.isArray(center) ? Number(center[1]) : 0), [center]);
@@ -334,35 +335,36 @@ export default function PlanPage() {
     });
   };
 
-  /** 경로(직선/OSRM) */
-  const buildStraightLine = (list: ItinStop[]) => list.map(s => [s.lat, s.lon] as [number, number]);
-  const fetchOsrmRoute = async (list: ItinStop[]) => {
-    const coords = list.map(s => `${s.lon},${s.lat}`).join(';'); // OSRM: lon,lat
-    const url = `https://router.project-osrm.org/route/v1/${transport}/${coords}?overview=full&geometries=geojson`;
-    const res = await fetch(url);
-    const json = await res.json();
-    return json?.routes?.[0]?.geometry ?? null;
-  };
+  /** 경로(직선/OSRM) - Google Maps Directions API로 대체됨 */
+  // const buildStraightLine = (list: ItinStop[]) => list.map(s => [s.lat, s.lon] as [number, number]);
+  // const fetchOsrmRoute = async (list: ItinStop[]) => {
+  //   const coords = list.map(s => `${s.lon},${s.lat}`).join(';'); // OSRM: lon,lat
+  //   const url = `https://router.project-osrm.org/route/v1/${transport}/${coords}?overview=full&geometries=geojson`;
+  //   const res = await fetch(url);
+  //   const json = await res.json();
+  //   return json?.routes?.[0]?.geometry ?? null;
+  // };
 
-  useEffect(() => {
-    const list = days[activeDay] ?? [];
-    if (list.length < 2) { setRouteLine([]); setRouteGeo(null); return; }
-    if (routeMode === 'lines') {
-      setRouteGeo(null);
-      setRouteLine(buildStraightLine(list));
-    } else {
-      (async () => {
-        try {
-          const geom = await fetchOsrmRoute(list);
-          if (geom) { setRouteGeo({ type: 'Feature', properties: {}, geometry: geom } as unknown as GeoJsonObject); setRouteLine([]); }
-          else { setRouteGeo(null); setRouteLine(buildStraightLine(list)); }
-        } catch {
-          setRouteGeo(null); setRouteLine(buildStraightLine(list));
-        }
-      })();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days, activeDay, routeMode, transport]);
+  // 경로 표시는 Google Maps Directions API로 처리
+  // useEffect(() => {
+  //   const list = days[activeDay] ?? [];
+  //   if (list.length < 2) { setRouteLine([]); setRouteGeo(null); return; }
+  //   if (routeMode === 'lines') {
+  //     setRouteGeo(null);
+  //     setRouteLine(buildStraightLine(list));
+  //   } else {
+  //     (async () => {
+  //       try {
+  //         const geom = await fetchOsrmRoute(list);
+  //         if (geom) { setRouteGeo({ type: 'Feature', properties: {}, geometry: geom } as unknown as GeoJsonObject); setRouteLine([]); }
+  //         else { setRouteGeo(null); setRouteLine(buildStraightLine(list)); }
+  //       } catch {
+  //         setRouteGeo(null); setRouteLine(buildStraightLine(list));
+  //       }
+  //     })();
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [days, activeDay, routeMode, transport]);
 
   /** 하루 시간표 */
   const [dayStart, setDayStart] = useState('09:00');
@@ -651,8 +653,7 @@ export default function PlanPage() {
               }}>검색/주변</button>
               <select className="btn" value={transport} onChange={(e) => setTransport(e.target.value as TransportMode)}>
                 <option value="driving">차량</option>
-                <option value="foot">도보</option>
-                <option value="bicycle">자전거</option>
+                <option value="transit">대중교통</option>
               </select>
               <select className="btn" value={routeMode} onChange={(e) => setRouteMode(e.target.value as RouteMode)}>
                 <option value="lines">직선</option>
@@ -699,6 +700,15 @@ export default function PlanPage() {
                   typeof place.lat === 'number' && typeof place.lng === 'number' && 
                   !isNaN(place.lat) && !isNaN(place.lng)
                 )}
+                itinerary={days[activeDay]?.map((stop, idx) => ({
+                  id: stop.id,
+                  name: stop.name,
+                  lat: stop.lat,
+                  lng: stop.lon,
+                  order: idx
+                })) || []}
+                routeMode={routeMode}
+                transport={transport}
                 onPlaceClick={(place) => {
                   const originalPlace = places.find(p => keyOf(p, 0) === place.id);
                   if (originalPlace) {

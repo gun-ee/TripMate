@@ -52,26 +52,96 @@ export default function AccompanyWriteModal({ open, onClose, onCreated }: Props)
     <div className="modal-backdrop">
       <div className="modal">
         <h3>동행 게시글 작성</h3>
-        {loading && <p>로딩중…</p>}
-        {error && <p style={{ color: 'crimson' }}>{error}</p>}
-        <div>
-          <label>여행계획 선택</label>
-          <select value={selectedTripId ?? ''} onChange={(e) => setSelectedTripId(Number(e.target.value) || null)} disabled={trips.length === 0}>
-            <option value="">선택하세요</option>
-            {trips.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
-          </select>
-        </div>
-        <div>
-          <label>제목</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목을 입력하세요" />
-        </div>
-        <div>
-          <label>상세내용</label>
-          <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={6} placeholder="상세내용을 입력하세요" />
-        </div>
-        <div style={{ marginTop: 12, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button onClick={onClose}>취소</button>
-          <button onClick={createPost} disabled={trips.length === 0}>등록</button>
+        
+        {loading && (
+          <div className="loading-state">
+            <div className="loading-spinner"></div>
+            <p>여행계획을 불러오는 중...</p>
+          </div>
+        )}
+        
+        {error && (
+          <div className="error-state">
+            <p>⚠️ {error}</p>
+          </div>
+        )}
+        
+        {!loading && !error && (
+          <div className="form-content">
+            <div className="form-group">
+              <label className="form-label">
+                🗺️ 여행계획 선택
+                <span className="required">*</span>
+              </label>
+              <select 
+                className="form-select"
+                value={selectedTripId ?? ''} 
+                onChange={(e) => setSelectedTripId(Number(e.target.value) || null)} 
+                disabled={trips.length === 0}
+              >
+                <option value="">여행계획을 선택하세요</option>
+                {trips.map(t => (
+                  <option key={t.id} value={t.id}>{t.title}</option>
+                ))}
+              </select>
+              {trips.length === 0 && (
+                <p className="form-hint">
+                  먼저 여행계획을 생성해주세요.
+                </p>
+              )}
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label">
+                📝 제목
+                <span className="required">*</span>
+              </label>
+              <input 
+                className="form-input"
+                value={title} 
+                onChange={(e) => setTitle(e.target.value)} 
+                placeholder="동행 제목을 입력하세요 (예: 제주도 2박3일 동행구해요!)"
+                maxLength={200}
+              />
+              <div className="form-counter">
+                {title.length}/200
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label">
+                📄 상세내용
+                <span className="required">*</span>
+              </label>
+              <textarea 
+                className="form-textarea"
+                value={content} 
+                onChange={(e) => setContent(e.target.value)} 
+                rows={8} 
+                placeholder="동행에 대한 상세한 내용을 작성해주세요.&#10;&#10;예시:&#10;- 여행 일정: 2024년 3월 15일~17일&#10;- 인원: 2-3명&#10;- 예상 비용: 1인당 30만원&#10;- 연락처: 카카오톡 ID 공유 예정"
+              />
+              <div className="form-hint">
+                동행자들이 참여하기 쉽도록 구체적인 정보를 작성해주세요.
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div className="modal-actions">
+          <button 
+            className="tm-btn" 
+            onClick={onClose}
+            disabled={loading}
+          >
+            취소
+          </button>
+          <button 
+            className="tm-btn tm-btn--primary" 
+            onClick={createPost} 
+            disabled={trips.length === 0 || loading}
+          >
+            {loading ? '등록 중...' : '✍️ 등록하기'}
+          </button>
         </div>
       </div>
     </div>

@@ -11,10 +11,17 @@ function ApplyModal({ open, onClose, onSubmit }:{ open:boolean; onClose:()=>void
     <div className="modal-backdrop">
       <div className="modal">
         <h3>참여 신청</h3>
-        <textarea rows={6} value={message} onChange={e=>setMessage(e.target.value)} placeholder="간단한 소개 및 참여 의사를 적어주세요."/>
-        <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
-          <button onClick={onClose}>취소</button>
-          <button onClick={()=>onSubmit(message)}>신청</button>
+        <textarea 
+          rows={6} 
+          value={message} 
+          onChange={e=>setMessage(e.target.value)} 
+          placeholder="간단한 소개 및 참여 의사를 적어주세요.&#10;예: 안녕하세요! 같은 관심사를 가진 분들과 함께 여행하고 싶습니다."
+        />
+        <div className="modal-actions">
+          <button className="tm-btn" onClick={onClose}>취소</button>
+          <button className="tm-btn tm-btn--primary" onClick={()=>onSubmit(message)}>
+            ✉️ 신청하기
+          </button>
         </div>
       </div>
     </div>
@@ -53,27 +60,100 @@ export default function AccompanyDetail() {
   };
 
   return (
-    <div className="container">
-      <h2>{post.title}</h2>
-      <div className="meta">
-        <span>작성자: {post.authorName ?? post.authorId}</span> • <span>상태: {post.status}</span> • <span>Trip ID: {post.tripId}</span>
-      </div>
-      <hr/>
-      <section>
-        <h4>등록된 여행 내용</h4>
-        <p>Trip #{post.tripId} 요약을 이 영역에 렌더링하세요. (기존 Trip 상세 API 붙이면 됨)</p>
-      </section>
-      <section>
-        <h4>상세내용</h4>
-        <pre style={{ whiteSpace:'pre-wrap' }}>{post.content}</pre>
-      </section>
-      <div style={{ display:'flex', gap:8, marginTop:12 }}>
-        {post.status === 'OPEN' && <button onClick={() => setApplyOpen(true)}>참여 신청</button>}
-        <button onClick={() => navigate(`/accompany/${postId}/edit`)}>수정</button>
-        <button onClick={doDelete}>삭제</button>
-        {post.status === 'OPEN' && <button onClick={doClose}>모집 마감</button>}
+    <>
+      <Header />
+      <div className="tm-container">
+        <div className="tm-board">
+          <div className="tm-board__header">
+            <h2 className="tm-board__title">동행 상세</h2>
+            <div className="tm-board__actions">
+              <button 
+                className="tm-btn tm-btn--secondary" 
+                onClick={() => navigate('/accompany')}
+              >
+                ← 목록으로
+              </button>
+            </div>
+          </div>
+
+          <div className="tm-card">
+            <div className="post-header">
+              <h1 className="post-title">{post.title}</h1>
+              <div className="post-meta">
+                <div className="meta-item">
+                  <span className="meta-label">👤 작성자</span>
+                  <span className="meta-value">{post.authorName ?? post.authorId}</span>
+                </div>
+                <div className="meta-item">
+                  <span className="meta-label">📅 작성일</span>
+                  <span className="meta-value">
+                    {new Date(post.createdAt).toLocaleDateString('ko-KR', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
+                <div className="meta-item">
+                  <span className="meta-label">📋 상태</span>
+                  <span className={`tm-badge ${post.status === 'OPEN' ? 'is-open' : 'is-closed'}`}>
+                    {post.status === 'OPEN' ? '모집중' : '마감'}
+                  </span>
+                </div>
+                <div className="meta-item">
+                  <span className="meta-label">🗺️ 여행 ID</span>
+                  <span className="meta-value">#{post.tripId}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="post-content">
+              <h3>📝 상세 내용</h3>
+              <div className="content-text">
+                {post.content.split('\n').map((line, index) => (
+                  <p key={index}>{line}</p>
+                ))}
+              </div>
+            </div>
+
+            <div className="post-actions">
+              {post.status === 'OPEN' && (
+                <button 
+                  className="tm-btn tm-btn--primary" 
+                  onClick={() => setApplyOpen(true)}
+                >
+                  ✉️ 참여 신청
+                </button>
+              )}
+              <button 
+                className="tm-btn tm-btn--secondary" 
+                onClick={() => navigate(`/accompany/${postId}/edit`)}
+              >
+                ✏️ 수정
+              </button>
+              <button 
+                className="tm-btn" 
+                onClick={doDelete}
+                style={{ color: '#dc2626', borderColor: '#dc2626' }}
+              >
+                🗑️ 삭제
+              </button>
+              {post.status === 'OPEN' && (
+                <button 
+                  className="tm-btn" 
+                  onClick={doClose}
+                  style={{ color: '#ea580c', borderColor: '#ea580c' }}
+                >
+                  🔒 모집 마감
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
       <ApplyModal open={applyOpen} onClose={()=>setApplyOpen(false)} onSubmit={doApply} />
-    </div>
+    </>
   );
 }

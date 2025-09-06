@@ -16,28 +16,82 @@ export default function AccompanyManage() {
   useEffect(() => { load(); }, []);
 
   return (
-    <div className="container">
-      <h3>동행 신청 관리</h3>
-      {Object.keys(byPost).length === 0 && <p>신청 내역이 없습니다.</p>}
-      {Object.entries(byPost).map(([postId, list]) => (
-        <div key={postId} className="card" style={{ marginBottom: 12 }}>
-          <h4>게시글 #{postId}</h4>
-          <ul>
-            {list.map(a => (
-              <li key={a.id} style={{ borderBottom:'1px solid #eee', padding:'8px 0' }}>
-                <div>신청자: {a.applicantName ?? a.applicantId} • 상태: {a.status}</div>
-                <div style={{ whiteSpace:'pre-wrap' }}>{a.message}</div>
-                {a.status === 'PENDING' && (
-                  <div style={{ display:'flex', gap:8, marginTop:6 }}>
-                    <button onClick={() => accompanyApi.accept(a.id).then(load)}>수락</button>
-                    <button onClick={() => accompanyApi.reject(a.id).then(load)}>거부</button>
+    <>
+      <Header />
+      <div className="tm-container">
+        <div className="tm-board">
+          <div className="tm-board__header">
+            <h2 className="tm-board__title">동행 신청 관리</h2>
+            <div className="tm-board__actions">
+              <button 
+                className="tm-btn tm-btn--secondary" 
+                onClick={() => window.history.back()}
+              >
+                ← 뒤로가기
+              </button>
+            </div>
+          </div>
+
+          {Object.keys(byPost).length === 0 ? (
+            <div className="tm-table__empty">
+              아직 신청 내역이 없습니다.<br />
+              동행 글을 작성하고 신청을 받아보세요!
+            </div>
+          ) : (
+            <div className="applications-list">
+              {Object.entries(byPost).map(([postId, list]) => (
+                <div key={postId} className="tm-card">
+                  <h4>📋 게시글 #{postId}</h4>
+                  <div className="applications-grid">
+                    {list.map(a => (
+                      <div key={a.id} className="application-item">
+                        <div className="application-header">
+                          <div className="applicant-info">
+                            <span className="applicant-name">👤 {a.applicantName ?? a.applicantId}</span>
+                            <span className={`status-badge status-${a.status.toLowerCase()}`}>
+                              {a.status === 'PENDING' ? '대기중' : 
+                               a.status === 'ACCEPTED' ? '수락됨' : '거부됨'}
+                            </span>
+                          </div>
+                          <div className="application-date">
+                            {new Date(a.createdAt).toLocaleDateString('ko-KR', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
+                        </div>
+                        <div className="application-message">
+                          {a.message}
+                        </div>
+                        {a.status === 'PENDING' && (
+                          <div className="application-actions">
+                            <button 
+                              className="tm-btn tm-btn--primary"
+                              onClick={() => accompanyApi.accept(a.id).then(load)}
+                            >
+                              ✅ 수락
+                            </button>
+                            <button 
+                              className="tm-btn"
+                              onClick={() => accompanyApi.reject(a.id).then(load)}
+                              style={{ color: '#dc2626', borderColor: '#dc2626' }}
+                            >
+                              ❌ 거부
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                )}
-              </li>
-            ))}
-          </ul>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      ))}
-    </div>
+      </div>
+    </>
   );
 }
