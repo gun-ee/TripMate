@@ -13,10 +13,17 @@
         @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
         public static class MessageView {
             private Long id; private Long roomId; private Long senderId; private String content; private LocalDateTime sentAt;
+            private String senderNickname; private String senderProfileImg;
             public static MessageView of(ChatMessage m) {
                 return MessageView.builder().id(m.getId()).roomId(m.getRoom().getId())
-                    .senderId(m.getSender().getId()).content(m.getContent()).sentAt(m.getSentAt()).build();
+                    .senderId(m.getSender().getId()).content(m.getContent()).sentAt(m.getSentAt())
+                    .senderNickname(m.getSender().getNickname()).senderProfileImg(m.getSender().getProfileImg()).build();
             }
+        }
+        
+        @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+        public static class RoomDetail {
+            private Long id; private String name; private int memberCount;
         }
     }
     

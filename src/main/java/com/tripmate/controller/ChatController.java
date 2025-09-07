@@ -29,6 +29,12 @@ import java.util.Map;
         @DeleteMapping("/rooms/{roomId}/leave") public Map<String, Object> leave(@AuthenticationPrincipal CustomUserDetails user, @PathVariable Long roomId) {
             return chatService.leaveRoom(user.getMember().getId(), roomId);
         }
+        @GetMapping("/rooms/{roomId}") public ChatDtos.RoomDetail getRoomDetail(@AuthenticationPrincipal CustomUserDetails user, @PathVariable Long roomId) {
+            return chatService.getRoomDetail(user.getMember().getId(), roomId);
+        }
+        @GetMapping("/rooms/{roomId}/messages") public List<ChatDtos.MessageView> getMessages(@AuthenticationPrincipal CustomUserDetails user, @PathVariable Long roomId) {
+            return chatService.getMessages(user.getMember().getId(), roomId);
+        }
         @MessageMapping("/chat/{roomId}")
         public ChatDtos.MessageView handleMessage(@Payload ChatDtos.SendMessage msg, @DestinationVariable Long roomId, SimpMessageHeaderAccessor accessor) {
             // WebSocket에서 인증된 사용자 정보 가져오기

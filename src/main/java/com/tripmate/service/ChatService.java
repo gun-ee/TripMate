@@ -77,6 +77,32 @@
             messaging.convertAndSend("/topic/chat/" + roomId, view);
             return view;
         }
+        @Transactional(readOnly = true)
+        public ChatDtos.RoomDetail getRoomDetail(Long userId, Long roomId) {
+            Member user = members.findById(userId).orElseThrow();
+            ChatRoom room = roomRepo.findById(roomId).orElseThrow();
+            if (memberRepo.findByRoomAndMember(room, user).isEmpty()) {
+                throw new IllegalStateException("NOT_A_MEMBER");
+            }
+            int memberCount = (int) memberRepo.countByRoom(room);
+            return ChatDtos.RoomDetail.builder()
+                .id(room.getId())
+                .name(room.getName())
+                .memberCount(memberCount)
+                .build();
+        }
+        @Transactional(readOnly = true)
+        public List<ChatDtos.MessageView> getMessages(Long userId, Long roomId) {
+            Member user = members.findById(userId).orElseThrow();
+            ChatRoom room = roomRepo.findById(roomId).orElseThrow();
+            if (memberRepo.findByRoomAndMember(room, user).isEmpty()) {
+                throw new IllegalStateException("NOT_A_MEMBER");
+            }
+            List<ChatMessage> messages = messageRepo.findTop100ByRoomOrderBySentAtDesc(room);
+            // 최신 메시지가 먼저 오므로 역순으로 정렬하여 오래된 순서로 반환
+            Collections.reverse(messages);
+            return messages.stream().map(ChatDtos.MessageView::of).collect(Collectors.toList());
+        }
         @Transactional
         public Map<String, Object> leaveRoom(Long userId, Long roomId) {
             Member user = members.findById(userId).orElseThrow();
