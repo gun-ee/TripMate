@@ -20,6 +20,7 @@ import AccompanyManage from './components/AccompanyManage';
 import AccompanyList from './components/accompany/AccompanyList';
 import AccompanyDetail from './components/accompany/AccompanyDetail';
 import AccompanyEdit from './components/accompany/AccompanyEdit';
+import ChatbotBanner from './components/chatbot/ChatbotBanner';
 import './App.css';
 
 function App() {
@@ -47,6 +48,9 @@ function App() {
               <Route path="/accompany/:id/edit" element={<AccompanyEdit />} />
               <Route path="/chat/rooms" element={<ChatRoomsPage />} />
               </Routes>
+              
+              {/* 챗봇 아이콘 - 모든 페이지에서 표시 */}
+              <ChatbotBanner />
             </div>
           </Router>
         </WebSocketProvider>

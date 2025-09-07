@@ -1,0 +1,343 @@
+/* TripMateBot.css - 위젯용 챗봇 스타일 */
+
+.bot-wrap {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.bot-messages {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  background: linear-gradient(135deg, #f8fffe 0%, #f0fdfa 100%);
+  border-bottom: 1px solid #d1fae5;
+  min-height: 300px;
+  max-height: 400px;
+}
+
+.msg {
+  display: flex;
+  margin: 10px 0;
+}
+
+.msg .bubble {
+  padding: 14px 18px;
+  border-radius: 18px;
+  max-width: 85%;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(38, 166, 154, 0.1);
+  position: relative;
+}
+
+.msg.bot {
+  justify-content: flex-start;
+}
+
+.msg.bot .bubble {
+  background: white;
+  border: 1px solid #e0f2f1;
+  color: #374151;
+  border-left: 4px solid #26a69a;
+}
+
+.msg.user {
+  justify-content: flex-end;
+}
+
+.msg.user .bubble {
+  background: linear-gradient(135deg, #26a69a 0%, #00897b 100%);
+  color: white;
+  border: none;
+}
+
+.msg.system {
+  justify-content: center;
+}
+
+.msg.system .bubble {
+  background: linear-gradient(135deg, #e0f2f1 0%, #f0fdfa 100%);
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  font-size: 12px;
+  text-align: center;
+  max-width: 90%;
+  font-weight: 500;
+}
+
+/* 고정된 빠른 메뉴 스타일 */
+.bot-quick-fixed {
+  padding: 12px 16px;
+  background: white;
+  border-bottom: 1px solid #e0f2f1;
+  flex-shrink: 0;
+}
+
+.quick-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.quick-buttons {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.quick-btn {
+  border: 1px solid #26a69a;
+  border-radius: 16px;
+  padding: 6px 12px;
+  background: white;
+  color: #26a69a;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(38, 166, 154, 0.1);
+  text-align: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.quick-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(38, 166, 154, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.quick-btn:hover::before {
+  left: 100%;
+}
+
+.quick-btn:hover {
+  background: linear-gradient(135deg, #26a69a 0%, #00897b 100%);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(38, 166, 154, 0.3);
+}
+
+.quick-btn:active {
+  transform: translateY(0);
+}
+
+/* 고정된 FAQ 스타일 */
+.bot-faq-fixed {
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #f0fdfa 0%, #ecfdf5 100%);
+  border-bottom: 1px solid #d1fae5;
+  flex-shrink: 0;
+}
+
+.faq-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #064e3b;
+  margin-bottom: 8px;
+  text-align: center;
+  position: relative;
+}
+
+.faq-title::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 2px;
+  background: linear-gradient(90deg, #26a69a, #00897b);
+  border-radius: 1px;
+}
+
+.faq-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.faq-btn {
+  border: 1px solid #d1fae5;
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: white;
+  color: #047857;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.2;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(16, 185, 129, 0.1);
+}
+
+.faq-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(38, 166, 154, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.faq-btn:hover::before {
+  left: 100%;
+}
+
+.faq-btn:hover {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  color: #064e3b;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+}
+
+.faq-btn:active {
+  transform: translateY(0);
+}
+
+.bot-input {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f8fffe 0%, #f0fdfa 100%);
+  border-top: 1px solid #d1fae5;
+  flex-shrink: 0;
+  border-radius: 0 0 20px 20px;
+}
+
+.bot-input input {
+  flex: 1;
+  border: 2px solid #d1fae5;
+  border-radius: 28px;
+  padding: 14px 20px;
+  font-size: 15px;
+  outline: none;
+  transition: all 0.3s ease;
+  background: white;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+}
+
+.bot-input input:focus {
+  border-color: #26a69a;
+  box-shadow: 0 0 0 4px rgba(38, 166, 154, 0.15);
+  background: white;
+  transform: translateY(-1px);
+}
+
+.bot-input input::placeholder {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.bot-input button {
+  min-width: 80px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, #26a69a 0%, #00897b 100%);
+  color: white;
+  border: none;
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(38, 166, 154, 0.3);
+}
+
+.bot-input button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.6s;
+}
+
+.bot-input button:hover::before {
+  left: 100%;
+}
+
+.bot-input button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(38, 166, 154, 0.5);
+}
+
+.bot-input button:active {
+  transform: translateY(-1px);
+}
+
+.typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #26a69a;
+  display: block;
+  animation: blink 1s infinite ease-in-out;
+}
+
+.typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes blink {
+  0% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
+
+/* 스크롤바 스타일링 */
+.bot-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.bot-messages::-webkit-scrollbar-track {
+  background: #f0fdfa;
+  border-radius: 3px;
+}
+
+.bot-messages::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #26a69a 0%, #00897b 100%);
+  border-radius: 3px;
+}
+
+.bot-messages::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #00897b 0%, #00695c 100%);
+}
