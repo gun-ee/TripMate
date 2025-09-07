@@ -1,0 +1,145 @@
+{
+  "family": "tripmate-complete-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "2048",
+  "memory": "4096",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "tripmate-backend",
+      "image": "ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/tripmate-backend:latest",
+      "portMappings": [
+        {
+          "containerPort": 80,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "SPRING_PROFILES_ACTIVE",
+          "value": "prod"
+        },
+        {
+          "name": "SERVER_PORT",
+          "value": "80"
+        },
+        {
+          "name": "SPRING_DATASOURCE_URL",
+          "value": "jdbc:mysql://localhost:3306/tripmate?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
+        },
+        {
+          "name": "SPRING_DATASOURCE_USERNAME",
+          "value": "tripmate"
+        },
+        {
+          "name": "SPRING_DATASOURCE_PASSWORD",
+          "value": "tripmate123"
+        },
+        {
+          "name": "SPRING_REDIS_HOST",
+          "value": "localhost"
+        },
+        {
+          "name": "SPRING_REDIS_PORT",
+          "value": "6379"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/tripmate",
+          "awslogs-region": "REGION",
+          "awslogs-stream-prefix": "backend"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:80/actuator/health || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    },
+    {
+      "name": "tripmate-frontend",
+      "image": "ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/tripmate-frontend:latest",
+      "portMappings": [
+        {
+          "containerPort": 80,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/tripmate",
+          "awslogs-region": "REGION",
+          "awslogs-stream-prefix": "frontend"
+        }
+      }
+    },
+    {
+      "name": "mysql",
+      "image": "mysql:8.0",
+      "portMappings": [
+        {
+          "containerPort": 3306,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "MYSQL_ROOT_PASSWORD",
+          "value": "rootpassword"
+        },
+        {
+          "name": "MYSQL_DATABASE",
+          "value": "tripmate"
+        },
+        {
+          "name": "MYSQL_USER",
+          "value": "tripmate"
+        },
+        {
+          "name": "MYSQL_PASSWORD",
+          "value": "tripmate123"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/tripmate",
+          "awslogs-region": "REGION",
+          "awslogs-stream-prefix": "mysql"
+        }
+      }
+    },
+    {
+      "name": "redis",
+      "image": "redis:7-alpine",
+      "portMappings": [
+        {
+          "containerPort": 6379,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/tripmate",
+          "awslogs-region": "REGION",
+          "awslogs-stream-prefix": "redis"
+        }
+      }
+    }
+  ]
+}

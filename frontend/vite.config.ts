@@ -32,5 +32,17 @@ export default defineConfig({
         secure: false
       }
     }
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // TypeScript 에러 무시
+        if (warning.code === 'UNUSED_EXTERNAL_IMPORT') return
+        if (warning.code === 'CIRCULAR_DEPENDENCY') return
+        warn(warning)
+      }
+    }
   }
 })

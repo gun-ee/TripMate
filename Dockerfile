@@ -24,8 +24,12 @@ RUN ./mvnw clean package -DskipTests
 # 실행 가능한 JAR 파일을 app.jar로 이름 변경
 RUN mv target/*.jar app.jar
 
-# 포트 노출
-EXPOSE 8080
+# 포트 노출 (80번 포트로 변경)
+EXPOSE 80
+
+# 환경변수 설정
+ENV SERVER_PORT=80
+ENV SPRING_PROFILES_ACTIVE=prod
 
 # 애플리케이션 실행
 ENTRYPOINT ["java", "-jar", "app.jar"]

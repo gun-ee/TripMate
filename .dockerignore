@@ -1,44 +1,38 @@
-# Git 관련
+# Git
 .git
 .gitignore
-.gitattributes
 
-# IDE 관련
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# IDE
 .idea
 .vscode
 *.iml
 
-# 빌드 결과물
-target/
-build/
-dist/
-
-# 로그 파일
-*.log
-
-# 임시 파일
-*.tmp
-*.temp
-
-# OS 관련
+# OS
 .DS_Store
 Thumbs.db
 
-# 환경 설정 파일
-.env
-.env.local
-.env.production
+# Logs
+*.log
+logs/
 
-# 테스트 관련
-**/test/
-**/tests/
-**/*.test.js
-**/*.spec.js
+# Node modules
+frontend/node_modules
+frontend/dist
 
-# 문서
-README.md
-*.md
-docs/
+# Maven
+target/
+.mvn/wrapper/maven-wrapper.jar
 
-# 커서 관련
-.cursor/
+# Build artifacts
+*.jar
+*.war
+*.ear
+
+# Temporary files
+*.tmp
+*.temp
