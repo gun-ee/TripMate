@@ -46,52 +46,52 @@ pie title "Tech Focus"
 
 ```mermaid
 flowchart LR
-  subgraph CLIENT["Frontend: React SPA"]
-    UI["Planner / Search / Chat UI"]
+  subgraph CLIENT[Frontend React SPA]
+    UI[Planner Search Chat UI]
   end
 
-  subgraph DATA["DB & Cache"]
+  subgraph DATA[DB and Cache]
     MYSQL[(MySQL)]
-    REDIS[(Redis: L2 Cache)]
+    REDIS[(Redis L2 cache)]
   end
 
-  subgraph EXT["External APIs"]
-    GPL["Google Places/Photo"]
-    KAKAO["Kakao"]
-    OTM["OpenTripMap"]
-    OSRM["OSRM: /route, /table"]
+  subgraph EXT[External APIs]
+    GPL[Google Places and Photo]
+    KAKAO[Kakao]
+    OTM[OpenTripMap]
+    OSRM[OSRM route and table]
   end
 
-  subgraph BE["Backend: Spring Boot (JWT common)"]
-    subgraph Place["Place Search"]
-      PLCtrl["PlaceController"] --> PLService["PlaceSearchService"]
+  subgraph BE[Backend Spring Boot JWT common]
+    subgraph PLACE[Place Search]
+      PLCtrl[PlaceController] --> PLService[PlaceSearchService]
       PLService --> REDIS
       PLService --> GPL
       PLService --> KAKAO
       PLService --> OTM
+      PLService --> MYSQL
     end
 
-    subgraph Trip["Trip / Optimize"]
-      TCtrl["TripController"] --> TService["TripService"]
-      OCtrl["OptimizeController"] --> OService["DayOptimizeService"]
-      OService --> RService["RouteService"]
+    subgraph TRIP[Trip and Optimize]
+      TCtrl[TripController] --> TService[TripService]
+      OCtrl[OptimizeController] --> OService[DayOptimizeService]
+      OService --> RService[RouteService]
       RService --> OSRM
+      TService --> MYSQL
     end
 
-    subgraph Social["Social / Companion / Chat / Notif"]
-      ACC["Accompany*"] --> MYSQL
-      POST["Post*"] --> MYSQL
-      CHAT["Chat/RegionChat*"] --> MYSQL
-      NOTI["Notification*"] --> MYSQL
+    subgraph SOCIAL[Social Companion Chat Notif]
+      ACC[Accompany services] --> MYSQL
+      POST[Post and comments] --> MYSQL
+      CHAT[Chat and region chat] --> MYSQL
+      NOTI[Notification] --> MYSQL
     end
-
-    PLService --> MYSQL
-    TService --> MYSQL
   end
 
   UI -->|JWT| PLCtrl
   UI -->|JWT| TCtrl
   UI -->|JWT| OCtrl
+
 
 ```
 
@@ -157,6 +157,7 @@ Redis 캐싱: Google Place 검색 결과 캐시 → 응답 속도 개선 & API �
  E2E 테스트 및 성능 계측 대시보드
 
 ---
+
 
 
 
