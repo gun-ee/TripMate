@@ -38,3 +38,35 @@ pie title "Tech Focus"
   "Backend (Spring)" : 40
   "Data & Cache (MySQL/Redis)" : 15
   "DevOps (Docker)" : 5
+---
+
+## 🏛 아키텍처
+
+flowchart LR
+  subgraph Client["Frontend: React + Vite + TypeScript"]
+    UI["SPA UI, 지도, 검색, 일정 편집"]
+  end
+
+  subgraph API["Backend: Spring Boot + JPA"]
+    CTRL["REST Controllers"]
+    SVC["Services: Trip, Place, Companion, Social, Chat"]
+    OPT["Route Optimizer: 방문 순서와 시간 예측"]
+  end
+
+  subgraph DATA["Data Layer"]
+    DB[("MySQL")]
+    REDIS[("Redis: Place 캐시")]
+  end
+
+  subgraph EXT["External APIs"]
+    PLACES["Google Places API"]
+  end
+
+  UI <--> CTRL
+  CTRL --> SVC --> DB
+  SVC --> REDIS
+  REDIS -- "miss" --> SVC --> PLACES --> SVC --> REDIS
+  SVC --> OPT
+  OPT --> CTRL --> UI
+
+
