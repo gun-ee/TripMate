@@ -45,52 +45,51 @@ pie title "Tech Focus"
 ## 🏛 아키텍처
 
 ```mermaid
-flowchart LR
-  subgraph CLIENT[Frontend React SPA]
-    UI[Planner Search Chat UI]
+flowchart TB
+  %% === Place 검색: 캐시 저장 & 재사용 ===
+  subgraph Search_Flow[Place search: cache save & reuse]
+    UI[Client UI] -->|GET /api/places/search| CTRL[PlaceController]
+    CTRL --> SVC[PlaceSearchService]
+
+    SVC --> L1[Memory cache (~45s)]
+    L1 -- HIT --> RET1[Return (L1)]
+    L1 -- MISS --> L2[(Redis cache)]
+
+    %% Redis HIT: 갖다 쓰기
+    L2 -- HIT --> PUTL1[Put -> L1] --> RET2[Return (L2)]
+
+    %% Redis MISS: 분산락 -> 외부 호출 -> 저장 -> 반환
+    L2 -- MISS --> LOCK{SETNX lock?}
+    LOCK -- yes --> CALL[Call external Places (Google/Kakao/OTM)]
+    CALL --> MERGE[Normalize & merge\n(photo priority: Google > Kakao > OTM)]
+    MERGE --> SAVE[SETEX to Redis (TTL by source)]
+    SAVE --> PUTL1 --> RET3[Return (fresh)]
+
+    %% 동시 MISS: 잠깐 대기 후 재조회
+    LOCK -- no --> WAIT[Wait 100~300ms] --> RECHECK[Recheck Redis]
+    RECHECK -- HIT --> RET4[Return (L2 after fill)]
+    RECHECK -- MISS --> FALLBACK[(optional) fallback call] --> SAVE
   end
 
-  subgraph DATA[DB and Cache]
-    MYSQL[(MySQL)]
-    REDIS[(Redis L2 cache)]
+  %% === 일정/플래너 로드: 캐시 갖다 쓰기(Hydration) ===
+  subgraph Hydration_Flow[Planner / trip page load: hydrate from cache]
+    UI2[Planner/Trip page] -->|GET /api/trips/{id}/days| TRIPC[TripController]
+    TRIPC --> TRIPSVC[TripService]
+    TRIPSVC --> DB[(MySQL)]
+    DB --> ITEMS[TripItems\n(placeKey, lat/lng, stayMin, ...)]
+
+    %% items 표시용 상세/사진 보강을 캐시에서 끌어옴
+    TRIPSVC --> READ[PlaceSearchService\nhydrate(placeKey)]
+    READ --> L1b[Memory cache]
+    L1b -- HIT --> MERGE1[Merge into items] --> RESP1[Return items+details]
+    L1b -- MISS --> L2b[(Redis cache)]
+    L2b -- HIT --> MERGE2[Merge into items] --> RESP2[Return items+details]
+
+    %% 캐시에 없으면 스냅샷/재조회로 채우고 재사용
+    L2b -- MISS --> FILL{DB snapshot\nor external refresh}
+    FILL -- snapshot --> SNAP[Read stored snapshot] --> PUTL2[SETEX Redis] --> MERGE3[Merge] --> RESP3[Return]
+    FILL -- refresh  --> EXT2[Call external] --> PUTL2 --> MERGE3 --> RESP3
   end
-
-  subgraph EXT[External APIs]
-    GPL[Google Places and Photo]
-    KAKAO[Kakao]
-    OTM[OpenTripMap]
-    OSRM[OSRM route and table]
-  end
-
-  subgraph BE[Backend Spring Boot JWT common]
-    subgraph PLACE[Place Search]
-      PLCtrl[PlaceController] --> PLService[PlaceSearchService]
-      PLService --> REDIS
-      PLService --> GPL
-      PLService --> KAKAO
-      PLService --> OTM
-      PLService --> MYSQL
-    end
-
-    subgraph TRIP[Trip and Optimize]
-      TCtrl[TripController] --> TService[TripService]
-      OCtrl[OptimizeController] --> OService[DayOptimizeService]
-      OService --> RService[RouteService]
-      RService --> OSRM
-      TService --> MYSQL
-    end
-
-    subgraph SOCIAL[Social Companion Chat Notif]
-      ACC[Accompany services] --> MYSQL
-      POST[Post and comments] --> MYSQL
-      CHAT[Chat and region chat] --> MYSQL
-      NOTI[Notification] --> MYSQL
-    end
-  end
-
-  UI -->|JWT| PLCtrl
-  UI -->|JWT| TCtrl
-  UI -->|JWT| OCtrl
 
 
 ```
@@ -157,6 +156,7 @@ Redis 캐싱: Google Place 검색 결과 캐시 → 응답 속도 개선 & API �
  E2E 테스트 및 성능 계측 대시보드
 
 ---
+
 
 
 
