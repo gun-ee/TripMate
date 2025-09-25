@@ -46,48 +46,67 @@ pie title "Tech Focus"
 
 ```mermaid
 flowchart LR
-  %% --- Client ---
-  subgraph CLIENT[Frontend]
+  subgraph CLIENT[Frontend React SPA]
     UI[Planner Search Chat UI]
   end
 
-  %% --- Data ---
   subgraph DATA[DB and Cache]
     MYSQL[(MySQL)]
     REDIS[(Redis L2 cache)]
   end
 
-  %% --- External ---
   subgraph EXT[External APIs]
     GPL[Google Places and Photo]
+    KAKAO[Kakao]
+    OTM[OpenTripMap]
+    OSRM[OSRM route and table]
   end
 
-  %% --- Backend ---
-  subgraph BE[Backend Spring Boot]
+  subgraph BE[Backend Spring Boot JWT common]
     subgraph PLACE[Place Search]
-      PLCtrl[PlaceController]
-      PLService[PlaceSearchService]
+      PLCtrl[PlaceController] --> PLService[PlaceSearchService]
+      PLService --> REDIS
+      PLService --> GPL
+      PLService --> KAKAO
+      PLService --> OTM
+      PLService --> MYSQL
     end
+
     subgraph TRIP[Trip and Optimize]
-      TCtrl[TripController]
-      TService[TripService]
+      TCtrl[TripController] --> TService[TripService]
+      OCtrl[OptimizeController] --> OService[DayOptimizeService]
+      OService --> RService[RouteService]
+      RService --> OSRM
+      TService --> MYSQL
+    end
+
+    subgraph SOCIAL[Social Companion Chat Notif]
+      ACC[Accompany services] --> MYSQL
+      POST[Post and comments] --> MYSQL
+      CHAT[Chat and region chat] --> MYSQL
+      NOTI[Notification] --> MYSQL
     end
   end
 
-  %% --- Search flow (cache save & reuse) ---
   UI -->|JWT| PLCtrl
-  PLCtrl --> PLService
-  PLService <-->|HIT read write| REDIS
-  PLService -->|MISS call| GPL
-  GPL -->|result setex| REDIS
-
-  %% --- Trip page load (hydrate from cache) ---
   UI -->|JWT| TCtrl
-  TCtrl --> TService
-  TService --> MYSQL
-  TService -->|hydrate request| PLService
-  REDIS -->|hydrate hit details| TService
+  UI -->|JWT| OCtrl
 
+REDIS[(Redis L2 cache)]
+  PL[PlaceSearchService]
+  TR[TripService]
+  UI[Planner UI]
+  DB[(MySQL)]
+
+  %% 검색 시: Redis HIT 을 바로 반환
+  REDIS -->|search HIT return cached places| PL
+  PL -->|miss then SETEX write back| REDIS
+
+  %% 일정 페이지 로드 시: 캐시로 보강해서 사용
+  UI -->|GET api trips id days| TR
+  TR --> DB
+  TR -->|hydrate place details by placeKey| PL
+  REDIS -->|hydrate HIT details and photos| TR
 
 ```
 
@@ -153,6 +172,7 @@ Redis 캐싱: Google Place 검색 결과 캐시 → 응답 속도 개선 & API �
  E2E 테스트 및 성능 계측 대시보드
 
 ---
+
 
 
 
