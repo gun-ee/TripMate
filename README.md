@@ -1,73 +1,40 @@
 # TripMate · 개인 프로젝트
+여행 일정을 만들고, **동선을 최적화**하며, 동행/커뮤니티/지역 채팅까지 아우르는 올인원 웹 앱
 
-![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-6DB33F?logo=springboot&logoColor=white)
-![Java](https://img.shields.io/badge/Java-21-007396?logo=openjdk&logoColor=white)
-![MySQL](https://img.shields.io/badge/MySQL-4479A1?logo=mysql&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-Cache-DC382D?logo=redis&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+![Frontend](https://img.shields.io/badge/Frontend-React%20%2B%20Vite%20%2B%20TypeScript-61DAFB?logo=react&labelColor=20232a)
+![Backend](https://img.shields.io/badge/Backend-Spring%20Boot%20%2B%20JPA-6DB33F?logo=springboot&labelColor=1a1a1a)
+![DB](https://img.shields.io/badge/DB-MySQL-4479A1?logo=mysql&labelColor=1a1a1a)
+![Cache](https://img.shields.io/badge/Cache-Redis%20(Google%20Place%20캐시)-DC382D?logo=redis&labelColor=1a1a1a)
+![DevOps](https://img.shields.io/badge/DevOps-Docker-2496ED?logo=docker&labelColor=1a1a1a)
 
-> **한 줄 소개**  
-> 여행 일정을 만들고, 그 일정 기반으로 동행을 모으며, 소셜·위치 채팅까지 목표로 하는 올인원 여행 플랫폼.  
-> 프론트/백엔드 **완전 분리** 구조, **직접 구현한 동선 최적화 알고리즘**, **Redis 캐싱으로 Google Place API 호출 최소화**가 핵심입니다.
-
----
-
-## 목차
-- [핵심 기능](#핵심-기능)
-- [아키텍처](#아키텍처)
-- [기능별 흐름도](#기능별-흐름도)
-- [페이지 방문 흐름](#페이지-방문-흐름)
-- [기술 스택](#기술-스택)
-- [빠른 시작](#빠른-시작)
-- [프로젝트 구조(예시)](#프로젝트-구조예시)
-- [하이라이트](#하이라이트)
-- [로드맵](#로드맵)
-- [라이선스 & 문의](#라이선스--문의)
+> **핵심 포인트**
+> - 프론트/백 **완전 분리** (React SPA ↔ Spring REST API)  
+> - **최적 동선 탐색 알고리즘** 직접 구현 (하루 일정 방문 순서/예상 소요시간 산출)  
+> - **Redis 캐싱으로 Google Place API 호출 최소화** (중복·근접 검색 응답 가속)  
+> - 개인 프로젝트
 
 ---
 
-## 핵심 기능
-
-- ✈️ **여행 일정 플래너**: 날짜·도시 선택 → 장소 추가/정렬 → 일정 저장/수정  
-- 🤝 **동행 모집**: 생성한 일정에 기반해 모집글 작성, 참여 신청/수락 흐름  
-- 🗣️ **소셜 기능**: 게시글/댓글/좋아요(기본 커뮤니티 기능)  
-- 📍 **지역 채팅**: 지역(도시) 단위 채팅 (실시간 통신은 프론트/백 설계에 포함)
-
-> **중요**: **Redis는 채팅이 아닌** *Google Place* 장소 검색 결과 **캐싱**에 사용됩니다. (중복 호출 최소화)
+## 📌 주요 기능
+- ✈️ **여행 일정 플래너**: 도시/기간 설정 → 장소 검색/추가 → 일자별 편집/정렬/저장  
+- 🧭 **동선 최적화**: 장소 리스트 기반 **최적 방문 순서 & 예상 소요시간** 계산  
+- 🤝 **동행 모집**: 일정 기반 모집글 작성, 신청/수락/마감  
+- 🗣️ **커뮤니티**: 게시글/댓글/좋아요  
+- 📍 **지역 채팅**: 도시(지역) 단위 대화(실시간 설계 포함)  
+- ⚡ **장소 캐싱**: Google Place 검색 결과를 **Redis**에 저장해 반복/근접 검색 즉시 응답  
+> 참고: **Redis는 채팅용이 아니라 ‘장소 검색 결과 캐시’에만 사용**됩니다.
 
 ---
 
-## 아키텍처
+## 🧰 기술 스택
+- **Frontend**: React, Vite, TypeScript, React Router, Axios *(스타일/지도 라이브러리는 프로젝트 기준 적용)*  
+- **Backend**: Spring Boot, Java, Spring Data JPA *(JWT/Security/WebSocket 등은 구현 수준에 맞춰 구성)*  
+- **Database & Cache**: MySQL(영속 데이터), **Redis(장소 검색 결과 캐싱)**  
+- **DevOps**: Docker / Docker Compose(선택), GitHub
 
 ```mermaid
-flowchart LR
-  subgraph Client[Frontend: React + Vite + TS]
-    UI[SPA UI/지도/검색/일정편집]
-  end
-
-  subgraph Server[Backend: Spring Boot + JPA]
-    API[REST API]
-    OPT[동선 최적화 알고리즘]
-  end
-
-  subgraph Storage[Storage]
-    DB[(MySQL)]
-    C{Redis Cache}
-  end
-
-  subgraph External[External APIs]
-    GP[Google Places API]
-  end
-
-  UI <--> API
-  API --> DB
-  API --> OPT
-  UI -->|장소 검색| API
-  API -->|캐시 조회| C
-  C -- miss --> API --> GP --> API --> C
-  API -->|장소 검색 결과| UI
-  UI -->|최적화 요청| OPT
-  OPT -->|최적 순서/거리·시간 추정| UI
+pie title Tech Focus
+  "Frontend (React)" : 40
+  "Backend (Spring)" : 40
+  "Data & Cache (MySQL/Redis)" : 15
+  "DevOps (Docker)" : 5
