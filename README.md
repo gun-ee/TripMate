@@ -96,11 +96,11 @@ flowchart LR
 
 ---
 
-##🗂 프로젝트 구조 (예시)
+##🗂 프로젝트 구조
 
 ```mermaid
 flowchart LR
-  LAND["랜딩 또는 로그인"] --> PLANNER["일정 플래너"]
+  LAND["로그인"] --> PLANNER["일정 플래너"]
   PLANNER --> PLACE["장소 검색 및 추가"]
   PLACE --> DAY["일자별 편집"]
   DAY --> OPTIMIZE["동선 최적화"]
@@ -135,3 +135,4 @@ Redis 캐싱: Google Place 검색 결과 캐시 → 응답 속도 개선 & API �
  E2E 테스트 및 성능 계측 대시보드
 
 ---
+
