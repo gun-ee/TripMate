@@ -45,15 +45,6 @@ pie title "Tech Focus"
 ## 🏛 아키텍처
 
 ```mermaid
-## 📦 캐시된 장소데이터 "갖다 쓰기" 경로 (추가)
-
-아래 두 플로우는
-1) **검색 시** Redis에 캐싱하고,  
-2) **플래너/일정 화면** 로드 시 **Redis에서 바로 끌어다 써서**(필요 시 DB/외부로 보강) 응답하는 경로를 명시합니다.
-
-### 1) 검색 → 캐시 저장 & 재사용
-
-```mermaid
 flowchart TB
   UI[Client UI] -->|GET /api/places/search| CTRL[PlaceController]
   CTRL --> SVC[PlaceService]
@@ -144,6 +135,7 @@ Redis 캐싱: Google Place 검색 결과 캐시 → 응답 속도 개선 & API �
  E2E 테스트 및 성능 계측 대시보드
 
 ---
+
 
 
 
