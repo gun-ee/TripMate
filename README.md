@@ -47,13 +47,15 @@ pie title "Tech Focus"
 ```mermaid
 flowchart TB
 
-  %% ===== Shared caches =====
+  %% shared caches
   L1[Memory cache 45s]
   L2[(Redis cache)]
   SAVE[SETEX to Redis]
-  
-  %% ===== 1) Search flow: save & reuse =====
-  subgraph SEARCH[Place search: cache save and reuse]
+  PUTL1A[Put into L1]
+  PUTL1B[Put into L1]
+
+  %% 1) place search: cache save and reuse
+  subgraph SEARCH[Place search save and reuse]
     UI[Client UI]
     CTRL[PlaceController]
     SVC[PlaceSearchService]
@@ -63,10 +65,9 @@ flowchart TB
     RET3[Return fresh]
     RET4[Return after fill]
 
-    LOCK{SETNX lock acquired?}
+    LOCK{SETNX lock acquired}
     CALL[Call external places]
     MERGE[Normalize and merge photos]
-    PUTL1A[Put into L1]
     WAIT[Wait 100-300 ms]
     RECHECK[Recheck Redis]
     FALLBACK[Optional fallback call]
@@ -96,28 +97,27 @@ flowchart TB
     FALLBACK --> SAVE
   end
 
-  %% ===== 2) Planner load flow: hydrate from cache =====
-  subgraph HYDRATE[Planner or trip page: hydrate details from cache]
+  %% 2) planner load: hydrate details from cache
+  subgraph HYDRATE[Planner or trip page hydrate from cache]
     UI2[Planner or Trip page]
     TRIPC[TripController]
     TRIPSVC[TripService]
     DB[(MySQL)]
-    ITEMS[TripItems (placeKey, lat, lng, stayMin)]
+    ITEMS[TripItems placeKey lat lng stayMin]
     READ[PlaceService hydrate by placeKey]
 
     MERGE1[Merge details into items]
     MERGE2[Merge details into items]
     MERGE3[Merge details into items]
-    RESP1[Return items + details]
-    RESP2[Return items + details]
-    RESP3[Return items + details]
+    RESP1[Return items with details]
+    RESP2[Return items with details]
+    RESP3[Return items with details]
 
     FILL{DB snapshot or external refresh}
     SNAP[Read stored snapshot]
     EXT2[Call external API]
-    PUTL1B[Put into L1]
 
-    UI2 -->|GET /api/trips/{id}/days| TRIPC
+    UI2 -->|GET /api/trips id days| TRIPC
     TRIPC --> TRIPSVC
     TRIPSVC --> DB
     DB --> ITEMS
@@ -141,6 +141,7 @@ flowchart TB
     PUTL1B --> MERGE3
     MERGE3 --> RESP3
   end
+
 
 
 ```
@@ -207,6 +208,7 @@ Redis 캐싱: Google Place 검색 결과 캐시 → 응답 속도 개선 & API �
  E2E 테스트 및 성능 계측 대시보드
 
 ---
+
 
 
 
