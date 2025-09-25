@@ -49,22 +49,22 @@ flowchart TB
   UI[Client UI] -->|GET /api/places/search| CTRL[PlaceController]
   CTRL --> SVC[PlaceService]
 
-  %% L1/L2 조회
+
   SVC --> L1[Memory cache (~45s)]
   L1 -- HIT --> RET1[Return (L1)]
   L1 -- MISS --> L2[(Redis cache)]
 
-  %% Redis HIT → 바로 사용
+
   L2 -- HIT --> PUTL1[Put → L1] --> RET2[Return (L2)]
 
-  %% Redis MISS → 분산락 → 외부 API → 캐시 저장 → 반환
+
   L2 -- MISS --> LOCK{SETNX lock?}
   LOCK -- yes --> CALL[Call external place APIs]
   CALL --> MERGE[Normalize & merge (photo priority)]
   MERGE --> SAVE[SETEX to Redis (TTL by source)]
   SAVE --> PUTL1 --> RET3[Return (fresh)]
 
-  %% 동시 미스: 짧게 대기 후 재조회
+
   LOCK -- no --> WAIT[wait 100~300ms] --> RECHECK[recheck Redis]
   RECHECK -- HIT --> RET4[Return (L2 after fill)]
   RECHECK -- MISS --> FALLBACK[(optional) fallback] --> SAVE
@@ -135,6 +135,7 @@ Redis 캐싱: Google Place 검색 결과 캐시 → 응답 속도 개선 & API �
  E2E 테스트 및 성능 계측 대시보드
 
 ---
+
 
 
 
