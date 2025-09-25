@@ -45,31 +45,53 @@ pie title "Tech Focus"
 ## 🏛 아키텍처
 
 ```mermaid
-flowchart TB
-  UI[Client UI] -->|GET /api/places/search| CTRL[PlaceController]
-  CTRL --> SVC[PlaceService]
+flowchart LR
+  subgraph CLIENT["Frontend: React SPA"]
+    UI["Planner / Search / Chat UI"]
+  end
 
+  subgraph DATA["DB & Cache"]
+    MYSQL[(MySQL)]
+    REDIS[(Redis: L2 Cache)]
+  end
 
-  SVC --> L1[Memory cache (~45s)]
-  L1 -- HIT --> RET1[Return (L1)]
-  L1 -- MISS --> L2[(Redis cache)]
+  subgraph EXT["External APIs"]
+    GPL["Google Places/Photo"]
+    KAKAO["Kakao"]
+    OTM["OpenTripMap"]
+    OSRM["OSRM: /route, /table"]
+  end
 
+  subgraph BE["Backend: Spring Boot (JWT common)"]
+    subgraph Place["Place Search"]
+      PLCtrl["PlaceController"] --> PLService["PlaceSearchService"]
+      PLService --> REDIS
+      PLService --> GPL
+      PLService --> KAKAO
+      PLService --> OTM
+    end
 
-  L2 -- HIT --> PUTL1[Put → L1] --> RET2[Return (L2)]
+    subgraph Trip["Trip / Optimize"]
+      TCtrl["TripController"] --> TService["TripService"]
+      OCtrl["OptimizeController"] --> OService["DayOptimizeService"]
+      OService --> RService["RouteService"]
+      RService --> OSRM
+    end
 
+    subgraph Social["Social / Companion / Chat / Notif"]
+      ACC["Accompany*"] --> MYSQL
+      POST["Post*"] --> MYSQL
+      CHAT["Chat/RegionChat*"] --> MYSQL
+      NOTI["Notification*"] --> MYSQL
+    end
 
-  L2 -- MISS --> LOCK{SETNX lock?}
-  LOCK -- yes --> CALL[Call external place APIs]
-  CALL --> MERGE[Normalize & merge (photo priority)]
-  MERGE --> SAVE[SETEX to Redis (TTL by source)]
-  SAVE --> PUTL1 --> RET3[Return (fresh)]
+    PLService --> MYSQL
+    TService --> MYSQL
+  end
 
-
-  LOCK -- no --> WAIT[wait 100~300ms] --> RECHECK[recheck Redis]
-  RECHECK -- HIT --> RET4[Return (L2 after fill)]
-  RECHECK -- MISS --> FALLBACK[(optional) fallback] --> SAVE
-
-
+  UI -->|JWT| PLCtrl
+  UI -->|JWT| TCtrl
+  UI -->|JWT| OCtrl
 
 ```
 
@@ -135,6 +157,7 @@ Redis 캐싱: Google Place 검색 결과 캐시 → 응답 속도 개선 & API �
  E2E 테스트 및 성능 계측 대시보드
 
 ---
+
 
 
 
