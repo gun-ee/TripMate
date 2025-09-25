@@ -46,49 +46,100 @@ pie title "Tech Focus"
 
 ```mermaid
 flowchart TB
-  %% === Place 검색: 캐시 저장 & 재사용 ===
-  subgraph Search_Flow[Place search: cache save & reuse]
-    UI[Client UI] -->|GET /api/places/search| CTRL[PlaceController]
-    CTRL --> SVC[PlaceSearchService]
 
-    SVC --> L1[Memory cache (~45s)]
-    L1 -- HIT --> RET1[Return (L1)]
-    L1 -- MISS --> L2[(Redis cache)]
+  %% ===== Shared caches =====
+  L1[Memory cache 45s]
+  L2[(Redis cache)]
+  SAVE[SETEX to Redis]
+  
+  %% ===== 1) Search flow: save & reuse =====
+  subgraph SEARCH[Place search: cache save and reuse]
+    UI[Client UI]
+    CTRL[PlaceController]
+    SVC[PlaceSearchService]
 
-    %% Redis HIT: 갖다 쓰기
-    L2 -- HIT --> PUTL1[Put -> L1] --> RET2[Return (L2)]
+    RET1[Return from L1]
+    RET2[Return from L2]
+    RET3[Return fresh]
+    RET4[Return after fill]
 
-    %% Redis MISS: 분산락 -> 외부 호출 -> 저장 -> 반환
-    L2 -- MISS --> LOCK{SETNX lock?}
-    LOCK -- yes --> CALL[Call external Places (Google/Kakao/OTM)]
-    CALL --> MERGE[Normalize & merge\n(photo priority: Google > Kakao > OTM)]
-    MERGE --> SAVE[SETEX to Redis (TTL by source)]
-    SAVE --> PUTL1 --> RET3[Return (fresh)]
+    LOCK{SETNX lock acquired?}
+    CALL[Call external places]
+    MERGE[Normalize and merge photos]
+    PUTL1A[Put into L1]
+    WAIT[Wait 100-300 ms]
+    RECHECK[Recheck Redis]
+    FALLBACK[Optional fallback call]
 
-    %% 동시 MISS: 잠깐 대기 후 재조회
-    LOCK -- no --> WAIT[Wait 100~300ms] --> RECHECK[Recheck Redis]
-    RECHECK -- HIT --> RET4[Return (L2 after fill)]
-    RECHECK -- MISS --> FALLBACK[(optional) fallback call] --> SAVE
+    UI -->|GET /api/places/search| CTRL
+    CTRL --> SVC
+
+    SVC --> L1
+    L1 -->|HIT| RET1
+    L1 -->|MISS| L2
+
+    L2 -->|HIT| PUTL1A
+    PUTL1A --> RET2
+
+    L2 -->|MISS| LOCK
+    LOCK -->|yes| CALL
+    LOCK -->|no| WAIT
+
+    CALL --> MERGE
+    MERGE --> SAVE
+    SAVE --> PUTL1A
+    PUTL1A --> RET3
+
+    WAIT --> RECHECK
+    RECHECK -->|HIT| RET4
+    RECHECK -->|MISS| FALLBACK
+    FALLBACK --> SAVE
   end
 
-  %% === 일정/플래너 로드: 캐시 갖다 쓰기(Hydration) ===
-  subgraph Hydration_Flow[Planner / trip page load: hydrate from cache]
-    UI2[Planner/Trip page] -->|GET /api/trips/{id}/days| TRIPC[TripController]
-    TRIPC --> TRIPSVC[TripService]
-    TRIPSVC --> DB[(MySQL)]
-    DB --> ITEMS[TripItems\n(placeKey, lat/lng, stayMin, ...)]
+  %% ===== 2) Planner load flow: hydrate from cache =====
+  subgraph HYDRATE[Planner or trip page: hydrate details from cache]
+    UI2[Planner or Trip page]
+    TRIPC[TripController]
+    TRIPSVC[TripService]
+    DB[(MySQL)]
+    ITEMS[TripItems (placeKey, lat, lng, stayMin)]
+    READ[PlaceService hydrate by placeKey]
 
-    %% items 표시용 상세/사진 보강을 캐시에서 끌어옴
-    TRIPSVC --> READ[PlaceSearchService\nhydrate(placeKey)]
-    READ --> L1b[Memory cache]
-    L1b -- HIT --> MERGE1[Merge into items] --> RESP1[Return items+details]
-    L1b -- MISS --> L2b[(Redis cache)]
-    L2b -- HIT --> MERGE2[Merge into items] --> RESP2[Return items+details]
+    MERGE1[Merge details into items]
+    MERGE2[Merge details into items]
+    MERGE3[Merge details into items]
+    RESP1[Return items + details]
+    RESP2[Return items + details]
+    RESP3[Return items + details]
 
-    %% 캐시에 없으면 스냅샷/재조회로 채우고 재사용
-    L2b -- MISS --> FILL{DB snapshot\nor external refresh}
-    FILL -- snapshot --> SNAP[Read stored snapshot] --> PUTL2[SETEX Redis] --> MERGE3[Merge] --> RESP3[Return]
-    FILL -- refresh  --> EXT2[Call external] --> PUTL2 --> MERGE3 --> RESP3
+    FILL{DB snapshot or external refresh}
+    SNAP[Read stored snapshot]
+    EXT2[Call external API]
+    PUTL1B[Put into L1]
+
+    UI2 -->|GET /api/trips/{id}/days| TRIPC
+    TRIPC --> TRIPSVC
+    TRIPSVC --> DB
+    DB --> ITEMS
+
+    TRIPSVC --> READ
+    READ --> L1
+    L1 -->|HIT| MERGE1
+    MERGE1 --> RESP1
+    L1 -->|MISS| L2
+
+    L2 -->|HIT| MERGE2
+    MERGE2 --> RESP2
+    L2 -->|MISS| FILL
+
+    FILL -->|snapshot| SNAP
+    SNAP --> SAVE
+    FILL -->|refresh| EXT2
+    EXT2 --> SAVE
+
+    SAVE --> PUTL1B
+    PUTL1B --> MERGE3
+    MERGE3 --> RESP3
   end
 
 
@@ -156,6 +207,7 @@ Redis 캐싱: Google Place 검색 결과 캐시 → 응답 속도 개선 & API �
  E2E 테스트 및 성능 계측 대시보드
 
 ---
+
 
 
 
