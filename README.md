@@ -46,69 +46,53 @@ pie title "Tech Focus"
 
 ```mermaid
 flowchart LR
-    subgraph Client["Frontend: React SPA"]
-        UI["SPA UI (일정/검색/채팅 화면)"]
+  subgraph CLIENT["Frontend: React SPA"]
+    UI["일정/검색/채팅 UI"]
+  end
+
+  subgraph DATA["DB & Cache"]
+    MYSQL[(MySQL)]
+    REDIS[(Redis: L2 캐시)]
+  end
+
+  subgraph EXT["External APIs"]
+    GPL["Google Places/Photo"]
+    KAKAO["Kakao"]
+    OTM["OpenTripMap"]
+    OSRM["OSRM /route, /table"]
+  end
+
+  subgraph BE["Backend: Spring Boot (JWT 공통)"]
+    subgraph Place["Place 검색"]
+      PLCtrl["PlaceController"] --> PLService["PlaceSearchService"]
+      PLService --> REDIS
+      PLService --> GPL
+      PLService --> KAKAO
+      PLService --> OTM
     end
-    subgraph Data["DB & Cache"]
-        mysql[(MySQL)]
-        redis[(Redis: 장소 결과 캐시)]
+
+    subgraph Trip["Trip/Optimize"]
+      TCtrl["TripController"] --> TService["TripService"]
+      OCtrl["OptimizeController"] --> OService["DayOptimizeService"]
+      OService --> RService["RouteService"]
+      RService --> OSRM
     end
-    subgraph ExternalAPIs["외부 API"]
-        google["Google Places API"]
-        kakao["Kakao Maps API"]
-        osrm["OSRM 경로계산 API"]
-        otm["OpenTripMap API"]
+
+    subgraph Social["Social/Companion/Chat/Notif"]
+      ACC["Accompany*"] --> MYSQL
+      POST["Post*"] --> MYSQL
+      CHAT["Chat/RegionChat*"] --> MYSQL
+      NOTI["Notification*"] --> MYSQL
     end
-    subgraph Backend["Backend: Spring Boot"]
-        %% 일정 플래너 도메인
-        subgraph TripDomain["일정 플래너 (Trip)"]
-            tripCtrl["TripController"] --> tripSvc["TripService\n- 여행 일정 관리"]
-            tripSvc --> mysql
-            tripCtrl --> optCtrl["OptimizeController"]
-            optCtrl --> optSvc["DayOptimizeService\n- 동선 최적화 알고리즘"]
-            optSvc --> routeSvc["RouteService\n- 경로 API 호출"]
-            routeSvc --> osrm
-        end
-        %% 장소 검색 도메인
-        subgraph PlaceDomain["장소 검색 (Place)"]
-            placeCtrl["PlaceController"] --> placeSvc["PlaceSearchService\n- 장소 검색 & 캐싱"]
-            placeSvc --> redis
-            redis -- "MISS" --> placeSvc
-            placeSvc --> google
-            google --> placeSvc
-            placeSvc --> redis
-        end
-        %% 동행 매칭 도메인
-        subgraph CompanionDomain["동행 매칭 (Companion)"]
-            accCtrl["AccompanyController"] --> accSvc["AccompanyService\n- 동행 모집 관리"]
-            accSvc --> mysql
-            accAppCtrl["AccompanyApplicationController"] --> accSvc
-            accGrpChatCtrl["AccompanyGroupChatController"] --> accSvc
-        end
-        %% 커뮤니티 도메인
-        subgraph CommunityDomain["커뮤니티 (Community)"]
-            postCtrl["PostController"] --> postSvc["PostService\n- 게시글/댓글 관리"]
-            postSvc --> mysql
-            followCtrl["FollowController"] --> followSvc["FollowService\n- 팔로우 관리"]
-            followSvc --> mysql
-        end
-        %% 실시간 채팅 도메인
-        subgraph ChatDomain["실시간 채팅 (Chat)"]
-            chatCtrl["ChatController"] --> chatSvc["ChatService\n- 채팅방/메시지 관리"]
-            regionChatCtrl["RegionChatController"] --> regionChatSvc["RegionChatService\n- 지역 채널 관리"]
-            chatSvc --> mysql
-            regionChatSvc --> mysql
-            chatCtrl -- "WebSocket 메시지" --> chatSvc
-        end
-    end
-    %% 사용자의 요청 흐름 (Frontend -> Backend)
-    User["사용자"] -->|브라우저/앱| UI
-    UI -->|요청: GET/POST /api/trips| tripCtrl
-    UI -->|요청: GET /api/places/search| placeCtrl
-    UI -->|요청: POST /api/accompany| accCtrl
-    UI -->|요청: POST /api/posts| postCtrl
-    UI -->|요청: 채팅 입장/메시지 전송| chatCtrl
-    UI -->|요청: POST /api/optimize/day| optCtrl
+
+    TService --> MYSQL
+    PLService --> MYSQL
+  end
+
+  UI -->|JWT| PLCtrl
+  UI -->|JWT| TCtrl
+  UI -->|JWT| OCtrl
+
 
 ```
 
@@ -174,5 +158,6 @@ Redis 캐싱: Google Place 검색 결과 캐시 → 응답 속도 개선 & API �
  E2E 테스트 및 성능 계측 대시보드
 
 ---
+
 
 
