@@ -45,53 +45,39 @@ pie title "Tech Focus"
 ## 🏛 아키텍처
 
 ```mermaid
-flowchart LR
-  subgraph CLIENT["Frontend: React SPA"]
-    UI["일정/검색/채팅 UI"]
-  end
+## 📦 캐시된 장소데이터 "갖다 쓰기" 경로 (추가)
 
-  subgraph DATA["DB & Cache"]
-    MYSQL[(MySQL)]
-    REDIS[(Redis: L2 캐시)]
-  end
+아래 두 플로우는
+1) **검색 시** Redis에 캐싱하고,  
+2) **플래너/일정 화면** 로드 시 **Redis에서 바로 끌어다 써서**(필요 시 DB/외부로 보강) 응답하는 경로를 명시합니다.
 
-  subgraph EXT["External APIs"]
-    GPL["Google Places/Photo"]
-    KAKAO["Kakao"]
-    OTM["OpenTripMap"]
-    OSRM["OSRM /route, /table"]
-  end
+### 1) 검색 → 캐시 저장 & 재사용
 
-  subgraph BE["Backend: Spring Boot (JWT 공통)"]
-    subgraph Place["Place 검색"]
-      PLCtrl["PlaceController"] --> PLService["PlaceSearchService"]
-      PLService --> REDIS
-      PLService --> GPL
-      PLService --> KAKAO
-      PLService --> OTM
-    end
+```mermaid
+flowchart TB
+  UI[Client UI] -->|GET /api/places/search| CTRL[PlaceController]
+  CTRL --> SVC[PlaceService]
 
-    subgraph Trip["Trip/Optimize"]
-      TCtrl["TripController"] --> TService["TripService"]
-      OCtrl["OptimizeController"] --> OService["DayOptimizeService"]
-      OService --> RService["RouteService"]
-      RService --> OSRM
-    end
+  %% L1/L2 조회
+  SVC --> L1[Memory cache (~45s)]
+  L1 -- HIT --> RET1[Return (L1)]
+  L1 -- MISS --> L2[(Redis cache)]
 
-    subgraph Social["Social/Companion/Chat/Notif"]
-      ACC["Accompany*"] --> MYSQL
-      POST["Post*"] --> MYSQL
-      CHAT["Chat/RegionChat*"] --> MYSQL
-      NOTI["Notification*"] --> MYSQL
-    end
+  %% Redis HIT → 바로 사용
+  L2 -- HIT --> PUTL1[Put → L1] --> RET2[Return (L2)]
 
-    TService --> MYSQL
-    PLService --> MYSQL
-  end
+  %% Redis MISS → 분산락 → 외부 API → 캐시 저장 → 반환
+  L2 -- MISS --> LOCK{SETNX lock?}
+  LOCK -- yes --> CALL[Call external place APIs]
+  CALL --> MERGE[Normalize & merge (photo priority)]
+  MERGE --> SAVE[SETEX to Redis (TTL by source)]
+  SAVE --> PUTL1 --> RET3[Return (fresh)]
 
-  UI -->|JWT| PLCtrl
-  UI -->|JWT| TCtrl
-  UI -->|JWT| OCtrl
+  %% 동시 미스: 짧게 대기 후 재조회
+  LOCK -- no --> WAIT[wait 100~300ms] --> RECHECK[recheck Redis]
+  RECHECK -- HIT --> RET4[Return (L2 after fill)]
+  RECHECK -- MISS --> FALLBACK[(optional) fallback] --> SAVE
+
 
 
 ```
@@ -158,6 +144,7 @@ Redis 캐싱: Google Place 검색 결과 캐시 → 응답 속도 개선 & API �
  E2E 테스트 및 성능 계측 대시보드
 
 ---
+
 
 
 
